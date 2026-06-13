@@ -127,7 +127,7 @@ def analyze(records: list) -> list:
 # Cache
 _cache = {}
 _cache_time = {}
-CACHE_SEC = 60
+CACHE_SEC = 120
 
 @app.route("/api/uniques/<server>")
 def get_uniques(server):
