@@ -1,6 +1,8 @@
 import re
 import json
 import requests
+import threading
+import os
 from datetime import datetime, timedelta
 from collections import defaultdict
 from flask import Flask, jsonify
@@ -175,6 +177,30 @@ def get_all_uniques():
 @app.route("/health")
 def health():
     return jsonify({"status": "ok"})
+
+_widget_lock = threading.Lock()
+_widget_state = {"server": "knidos"}
+
+@app.route("/api/widget/state")
+def widget_state():
+    with _widget_lock:
+        return jsonify(dict(_widget_state))
+
+@app.route("/api/widget/set/<server>")
+def widget_set(server):
+    server = server.lower()
+    if server not in SERVERS:
+        return jsonify({"error": "Unknown server", "valid": list(SERVERS.keys())}), 404
+    with _widget_lock:
+        _widget_state["server"] = server
+    return jsonify({"ok": True, "server": server})
+
+@app.route("/widget")
+def widget_page():
+    path = os.path.join(os.path.dirname(__file__), "widget.html")
+    with open(path, "r", encoding="utf-8") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

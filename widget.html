@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>SRO Unique Radar</title>
+<!--
+  ===========================================================
+  SRO UNIQUE RADAR — OBS Overlay Widget (Railway uzerinden)
+  ===========================================================
+  OBS KURULUMU:
+  1) Kaynak Ekle -> Tarayici (Browser Source)
+  2) URL: https://sro-unique-api-production.up.railway.app/widget
+  3) Genislik: 380, Yukseklik: 460
+  4) Arka plan seffaftir.
+
+  STREAM DECK KURULUMU:
+  Her sunucu icin bir "Website" butonu olustur, "GET request in
+  background" secenegini ac, URL olarak su adresleri kullan:
+    https://sro-unique-api-production.up.railway.app/api/widget/set/knidos
+    https://sro-unique-api-production.up.railway.app/api/widget/set/lidya
+    https://sro-unique-api-production.up.railway.app/api/widget/set/nemrut
+    https://sro-unique-api-production.up.railway.app/api/widget/set/karya
+
+  Widget her 4 saniyede bu state'i kontrol eder ve otomatik gecer.
+
+  URL PARAMETRELERI (opsiyonel, ilk yuklemede varsayilan):
+    ?server=knidos   -> ilk acilista gosterilecek sunucu
+    ?count=2         -> kac unique gosterilsin (1-5)
+    ?tabs=0          -> sunucu sekmelerini gizle
+  ===========================================================
+-->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
+
+:root{
+  --cyan:#00e5ff;
+  --magenta:#ff2bd6;
+  --gold:#ffd166;
+  --green:#39ff88;
+  --red:#ff3b3b;
+  --text:#e8f1ff;
+  --text-dim:#7c8bb0;
+  --panel: rgba(10,14,26,0.74);
+  --panel-border: rgba(255,255,255,0.07);
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+
+html,body{
+  background:transparent;
+  font-family:'Rajdhani',sans-serif;
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+
+#app{
+  width:360px;
+  position:relative;
+  padding:18px;
+  user-select:none;
+}
+
+/* ---- Signature: doner radar taramasi ---- */
+.radar{
+  position:absolute; inset:-3px;
+  border-radius:18px;
+  background: conic-gradient(from 0deg,
+    transparent 0deg,
+    rgba(0,229,255,0.9) 22deg,
+    transparent 75deg,
+    transparent 285deg,
+    rgba(255,43,214,0.55) 330deg,
+    transparent 360deg);
+  filter: blur(7px);
+  opacity:0.6;
+  animation: spin 7s linear infinite;
+  z-index:0;
+}
+@keyframes spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+
+.card{
+  position:relative; z-index:1;
+  background:var(--panel);
+  border:1px solid var(--panel-border);
+  border-radius:16px;
+  padding:16px 18px 12px;
+  backdrop-filter: blur(10px) saturate(150%);
+  box-shadow: 0 0 0 1px rgba(0,229,255,0.08), 0 14px 40px rgba(0,0,0,0.5);
+  animation: introCard .6s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes introCard{
+  from{ opacity:0; transform:translateY(10px) scale(.98); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* ---- Hedefleme koseleri ---- */
+.corner{ position:absolute; width:16px; height:16px; border:2px solid var(--cyan); opacity:.85; }
+.corner.tl{ top:-1px; left:-1px; border-right:none; border-bottom:none; border-top-left-radius:14px; }
+.corner.tr{ top:-1px; right:-1px; border-left:none; border-bottom:none; border-top-right-radius:14px; }
+.corner.bl{ bottom:-1px; left:-1px; border-right:none; border-top:none; border-bottom-left-radius:14px; }
+.corner.br{ bottom:-1px; right:-1px; border-left:none; border-top:none; border-bottom-right-radius:14px; }
+
+/* ---- Header ---- */
+.head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.title{
+  font-family:'Orbitron',sans-serif; font-weight:900; font-size:13px; letter-spacing:3px;
+  color:var(--cyan); text-shadow:0 0 10px rgba(0,229,255,.6);
+}
+.live{ display:flex; align-items:center; gap:6px; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); letter-spacing:1px; }
+.dot{ width:7px; height:7px; border-radius:50%; background:var(--red); box-shadow:0 0 8px var(--red); animation:pulse 1.4s ease-in-out infinite; }
+@keyframes pulse{ 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.35; transform:scale(.8);} }
+
+/* ---- Sunucu sekmeleri ---- */
+.tabs{ display:flex; gap:6px; margin-bottom:14px; }
+.tab{
+  flex:1; text-align:center; padding:6px 0;
+  font-family:'Rajdhani',sans-serif; font-weight:700; font-size:11px;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim);
+  border:1px solid var(--panel-border); border-radius:8px; cursor:pointer;
+  background:rgba(255,255,255,.02); transition:all .2s ease;
+}
+.tab.active{
+  color:#06090f; background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  border-color:transparent; box-shadow:0 0 14px rgba(0,229,255,.45);
+}
+
+/* ---- Hedef blogu ---- */
+.boss{ padding:11px 0; border-top:1px solid var(--panel-border); }
+.boss:first-of-type{ border-top:none; padding-top:0; }
+
+.eyebrow{
+  font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:3px;
+  text-transform:uppercase; margin-bottom:3px;
+}
+.eyebrow.first{ color:var(--magenta); }
+.eyebrow.rest{ color:var(--text-dim); }
+
+.boss-name{
+  font-family:'Orbitron',sans-serif; font-weight:700; font-size:15px; letter-spacing:1px;
+  text-transform:uppercase; color:var(--text); line-height:1.2;
+}
+
+.countdown{
+  font-family:'Share Tech Mono',monospace; font-weight:700; font-size:28px; letter-spacing:2px;
+  margin:5px 0 4px; color:var(--gold); text-shadow:0 0 12px rgba(255,209,102,.5);
+}
+.countdown.overdue{ color:var(--magenta); text-shadow:0 0 12px rgba(255,43,214,.5); }
+.countdown.bug{ color:var(--red); text-shadow:0 0 12px rgba(255,59,59,.6); animation:pulse 1.2s infinite; }
+
+.window{ font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-dim); margin-bottom:8px; }
+.window b{ color:var(--green); font-weight:700; }
+
+.regions{ display:flex; flex-direction:column; gap:5px; }
+.region{ display:flex; align-items:center; gap:8px; }
+.region-name{ font-size:11px; color:var(--text-dim); width:118px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.region-bar{ flex:1; height:5px; background:rgba(255,255,255,.07); border-radius:3px; overflow:hidden; }
+.region-fill{ height:100%; background:linear-gradient(90deg,var(--cyan),var(--magenta)); border-radius:3px; }
+.region-pct{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); width:32px; text-align:right; }
+
+.footer{ margin-top:10px; font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text-dim); text-align:right; letter-spacing:1px; }
+
+.empty{ font-size:12px; color:var(--text-dim); text-align:center; padding:24px 0; font-family:'Rajdhani',sans-serif; letter-spacing:1px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="radar"></div>
+  <div class="card">
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+    <div class="head">
+      <div class="title">UNIQUE RADAR</div>
+      <div class="live"><span class="dot"></span>CANLI</div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="content"><div class="empty">Veri yükleniyor...</div></div>
+    <div class="footer" id="footer"></div>
+  </div>
+</div>
+
+<script>
+const SERVERS = ['knidos','nemrut','karya','lidya'];
+const API = '/api/uniques/';
+const STATE_URL = '/api/widget/state';
+const SET_URL = '/api/widget/set/';
+const EXCLUDED = ['beakyung'];
+const REFRESH_MS = 60000;
+const STATE_POLL_MS = 4000;
+
+const params = new URLSearchParams(location.search);
+let currentServer = (params.get('server') || 'knidos').toLowerCase();
+if(!SERVERS.includes(currentServer)) currentServer = 'knidos';
+const maxCount = Math.max(1, Math.min(5, parseInt(params.get('count')||'2',10)));
+const hideTabs = params.get('tabs') === '0';
+
+let predictions = [];
+let tickTimer = null;
+
+function buildTabs(){
+  const tabsEl = document.getElementById('tabs');
+  if(hideTabs){ tabsEl.style.display='none'; return; }
+  tabsEl.innerHTML='';
+  SERVERS.forEach(s=>{
+    const d=document.createElement('div');
+    d.className='tab'+(s===currentServer?' active':'');
+    d.textContent=s;
+    d.onclick=()=>{
+      if(s!==currentServer){
+        currentServer=s;
+        buildTabs();
+        document.getElementById('content').innerHTML = '<div class="empty">Veri yükleniyor...</div>';
+        fetchData();
+        fetch(SET_URL+s).catch(()=>{});
+      }
+    };
+    tabsEl.appendChild(d);
+  });
+}
+
+// nextSpawn UTC instant'i Turkiye saatine (UTC+3) cevirip HH:MM dondurur
+function fmtHM(utcDate){
+  const t = new Date(utcDate.getTime() + 3*3600*1000);
+  const h = String(t.getUTCHours()).padStart(2,'0');
+  const m = String(t.getUTCMinutes()).padStart(2,'0');
+  return h+':'+m;
+}
+
+function fmtTime(date){
+  const t = new Date(date.getTime() + 3*3600*1000);
+  const h = String(t.getUTCHours()).padStart(2,'0');
+  const m = String(t.getUTCMinutes()).padStart(2,'0');
+  const s = String(t.getUTCSeconds()).padStart(2,'0');
+  return h+':'+m+':'+s;
+}
+
+function fmtDuration(mins, signed){
+  const sign = mins<0 ? '-' : (signed ? '+' : '');
+  const totalSec = Math.floor(Math.abs(mins)*60);
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  const s = totalSec%60;
+  if(h>0) return `${sign}${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${sign}${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+async function fetchData(){
+  try{
+    const res = await fetch(API+currentServer, {cache:'no-store'});
+    const json = await res.json();
+    const data = (json.data||[]).filter(it=>!EXCLUDED.some(ex=>it.name.toLowerCase().includes(ex)));
+
+    predictions = data.map(item=>({
+      name: item.name,
+      nextSpawnUTC: new Date(item.nextSpawn),
+      avg: item.avgIntervalMinutes,
+      std: item.avgIntervalMinutes*0.15,
+      regions: (item.locationStats||[]).slice(0,2)
+    })).sort((a,b)=>a.nextSpawnUTC-b.nextSpawnUTC).slice(0,maxCount);
+
+    document.getElementById('footer').textContent = 'GÜNCELLENDİ ' + fmtTime(new Date());
+    renderAndTick();
+  }catch(e){
+    document.getElementById('content').innerHTML = '<div class="empty">Bağlantı hatası,<br>yeniden deneniyor...</div>';
+  }
+}
+
+function renderContent(){
+  if(!predictions.length) return '<div class="empty">Aktif tahmin yok</div>';
+  const now = new Date();
+  return predictions.map((p,i)=>{
+    const remaining = (p.nextSpawnUTC - now)/60000;
+    let cdClass='countdown', cdText, windowHtml;
+
+    if(remaining > 0){
+      cdText = fmtDuration(remaining);
+      const early = new Date(p.nextSpawnUTC.getTime() - p.std*60000);
+      const late  = new Date(p.nextSpawnUTC.getTime() + p.std*60000);
+      windowHtml = `<b>${fmtHM(early)}</b> – <b>${fmtHM(late)}</b> arası`;
+    } else if(remaining >= -p.avg*0.5){
+      cdClass += ' overdue';
+      cdText = fmtDuration(remaining, true);
+      const maxLate = new Date(p.nextSpawnUTC.getTime() + p.std*2*60000);
+      windowHtml = `Bekleniyor · en geç <b>${fmtHM(maxLate)}</b>`;
+    } else {
+      cdClass += ' bug';
+      cdText = '⚠ BUGTA';
+      windowHtml = `Tahmini doğum: <b>${fmtHM(p.nextSpawnUTC)}</b>`;
+    }
+
+    const regionsHtml = p.regions.map(r=>`
+      <div class="region">
+        <div class="region-name">${r.zone}</div>
+        <div class="region-bar"><div class="region-fill" style="width:${r.pct}%"></div></div>
+        <div class="region-pct">${r.pct}%</div>
+      </div>`).join('');
+
+    return `<div class="boss">
+      <div class="eyebrow ${i===0?'first':'rest'}">${i===0?'SIRADAKİ HEDEF':'SONRAKİ HEDEF'}</div>
+      <div class="boss-name">${p.name}</div>
+      <div class="${cdClass}">${cdText}</div>
+      <div class="window">${windowHtml}</div>
+      ${regionsHtml ? `<div class="regions">${regionsHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderAndTick(){
+  document.getElementById('content').innerHTML = renderContent();
+  if(tickTimer) clearInterval(tickTimer);
+  tickTimer = setInterval(()=>{
+    document.getElementById('content').innerHTML = renderContent();
+  }, 1000);
+}
+
+async function pollState(){
+  try{
+    const res = await fetch(STATE_URL, {cache:'no-store'});
+    const data = await res.json();
+    if(data.server && SERVERS.includes(data.server) && data.server !== currentServer){
+      currentServer = data.server;
+      buildTabs();
+      document.getElementById('content').innerHTML = '<div class="empty">Veri yükleniyor...</div>';
+      fetchData();
+    }
+  }catch(e){}
+}
+
+async function init(){
+  await pollState();
+  buildTabs();
+  fetchData();
+  setInterval(fetchData, REFRESH_MS);
+  setInterval(pollState, STATE_POLL_MS);
+}
+
+init();
+</script>
+</body>
+</html>
