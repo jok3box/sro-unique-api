@@ -1,4 +1,3 @@
-
 import re
 import json
 import requests
@@ -16,6 +15,9 @@ SERVERS = {
     "karya": 20,
     "lidya": 21
 }
+
+# Gamegami sunucusu Türkiye saatinde (UTC+3) veri veriyor
+TR_OFFSET = timedelta(hours=3)
 
 def fetch_gamegami(server_id: int) -> list:
     url = f"https://silkroad.gamegami.com/instantuniques.php?id={server_id}"
@@ -51,7 +53,6 @@ def analyze(records: list) -> list:
         by_unique[r["name"]].append(r)
 
     result = []
-    now = datetime.utcnow()
 
     for uname, entries in by_unique.items():
         entries_sorted = sorted(entries, key=lambda x: x["spawn"])
@@ -61,6 +62,7 @@ def analyze(records: list) -> list:
         intervals = []
         for i in range(1, len(entries_sorted)):
             try:
+                # Spawn zamanları TR saatinde geliyor, interval hesabı için fark yeterli
                 t1 = datetime.strptime(entries_sorted[i-1]["spawn"], "%d.%m.%Y %H:%M")
                 t2 = datetime.strptime(entries_sorted[i]["spawn"], "%d.%m.%Y %H:%M")
                 diff = abs((t2 - t1).total_seconds() / 60)
@@ -73,17 +75,26 @@ def analyze(records: list) -> list:
             continue
 
         avg = sum(intervals) / len(intervals)
-        std = (sum((x-avg)**2 for x in intervals)/len(intervals))**0.5 if len(intervals) > 1 else avg*0.1
+        std = (sum((x - avg) ** 2 for x in intervals) / len(intervals)) ** 0.5 if len(intervals) > 1 else avg * 0.1
 
         try:
-            last_spawn = datetime.strptime(entries_sorted[-1]["spawn"], "%d.%m.%Y %H:%M")
-            next_spawn = last_spawn + timedelta(minutes=avg)
-            early = last_spawn + timedelta(minutes=max(0, avg-std))
-            late = last_spawn + timedelta(minutes=avg+std)
+            # lastSpawn TR saatinde geliyor → UTC'ye çevir
+            last_spawn_tr = datetime.strptime(entries_sorted[-1]["spawn"], "%d.%m.%Y %H:%M")
+            last_spawn_utc = last_spawn_tr - TR_OFFSET
+
+            # Hesaplamalar UTC üzerinden yap
+            next_spawn_utc = last_spawn_utc + timedelta(minutes=avg)
+            early_utc = last_spawn_utc + timedelta(minutes=max(0, avg - std))
+            late_utc = last_spawn_utc + timedelta(minutes=avg + std)
+
+            # earlySpawn / lateSpawn → TR saatinde göster (kullanıcı dostu)
+            early_tr = early_utc + TR_OFFSET
+            late_tr = late_utc + TR_OFFSET
+
         except:
             continue
 
-        # Bolge istatistikleri - rotasyon agirligi
+        # Bölge istatistikleri - rotasyon ağırlığı
         regions = [e["region"] for e in entries_sorted if e.get("region")]
         region_counts = defaultdict(int)
         for reg in regions:
@@ -102,7 +113,7 @@ def analyze(records: list) -> list:
 
         total_w = sum(weighted.values())
         location_stats = sorted(
-            [{"zone": r, "pct": int(v/total_w*100)} for r, v in weighted.items()],
+            [{"zone": r, "pct": int(v / total_w * 100)} for r, v in weighted.items()],
             key=lambda x: x["pct"], reverse=True
         ) if total_w > 0 else []
 
@@ -111,18 +122,19 @@ def analyze(records: list) -> list:
         result.append({
             "name": uname,
             "avgIntervalMinutes": round(avg),
-            "lastSpawn": last_entry["spawn"],
+            "lastSpawn": last_entry["spawn"],       # TR saati (orijinal)
             "lastKill": last_entry["kill"],
             "lastKiller": last_entry.get("killer", ""),
             "lastZone": last_entry["region"],
-            "nextSpawn": next_spawn.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-            "earlySpawn": early.strftime("%H:%M"),
-            "lateSpawn": late.strftime("%H:%M"),
+            "nextSpawn": next_spawn_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z"),  # UTC
+            "earlySpawn": early_tr.strftime("%H:%M"),   # TR saati
+            "lateSpawn": late_tr.strftime("%H:%M"),     # TR saati
             "recordCount": len(entries_sorted),
             "locationStats": location_stats[:3]
         })
 
     return sorted(result, key=lambda x: x["nextSpawn"])
+
 
 # Cache
 _cache = {}
@@ -134,16 +146,16 @@ def get_uniques(server):
     server = server.lower()
     if server not in SERVERS:
         return jsonify({"error": "Unknown server"}), 404
-    
+
     import time
     now = time.time()
     if server in _cache and now - _cache_time.get(server, 0) < CACHE_SEC:
         return jsonify(_cache[server])
-    
+
     server_id = SERVERS[server]
     records = fetch_gamegami(server_id)
     data = analyze(records)
-    
+
     response = {
         "server": server,
         "data": data,
