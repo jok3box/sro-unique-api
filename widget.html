@@ -276,11 +276,15 @@ function renderContent(){
       const early = new Date(p.nextSpawnUTC.getTime() - p.std*60000);
       const late  = new Date(p.nextSpawnUTC.getTime() + p.std*60000);
       windowHtml = `<b>${fmtHM(early)}</b> – <b>${fmtHM(late)}</b> arası`;
-    } else if(remaining >= -p.avg*0.5){
+    } else if(remaining > -p.std*2){
       cdClass += ' overdue';
       cdText = fmtDuration(remaining, true);
       const maxLate = new Date(p.nextSpawnUTC.getTime() + p.std*2*60000);
       windowHtml = `Bekleniyor · en geç <b>${fmtHM(maxLate)}</b>`;
+    } else if(remaining >= -p.avg*0.5){
+      cdClass += ' overdue';
+      cdText = fmtDuration(remaining, true);
+      windowHtml = `<b>Gecikti</b> · normal aralık aşıldı`;
     } else {
       cdClass += ' bug';
       cdText = '⚠ BUGTA';
