@@ -195,6 +195,16 @@ const API = '/api/uniques/';
 const STATE_URL = '/api/widget/state';
 const SET_URL = '/api/widget/set/';
 const EXCLUDED = ['beakyung'];
+
+// unique_tracker.py'deki STD_MULTIPLIER tablosuyla ayni - gercek interval varyansindan kalibre edildi
+const STD_MULTIPLIER = {
+  'Demon Shaitan': 0.15,
+  'Isyutaru': 0.20,
+  'Tiger Girl': 0.20,
+  'Uruchi': 0.18,
+  'Lord Yarkan': 0.35,
+};
+const DEFAULT_STD_MULTIPLIER = 0.15;
 const REFRESH_MS = 60000;
 const STATE_POLL_MS = 4000;
 
@@ -264,7 +274,7 @@ async function fetchData(){
       name: item.name,
       nextSpawnUTC: new Date(item.nextSpawn),
       avg: item.avgIntervalMinutes,
-      std: item.avgIntervalMinutes*0.15,
+      std: item.avgIntervalMinutes * (STD_MULTIPLIER[item.name] || DEFAULT_STD_MULTIPLIER),
       regions: (item.locationStats||[]).slice(0,2)
     })).sort((a,b)=>a.nextSpawnUTC-b.nextSpawnUTC).slice(0,maxCount);
 
