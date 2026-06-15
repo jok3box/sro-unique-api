@@ -110,6 +110,132 @@ def auth_me():
     return jsonify({"ok": True, "customer": customer})
 
 
+def get_customer_by_secret():
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    secret = auth[len("Bearer "):]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, character_limit FROM customers WHERE client_secret = %s AND active = TRUE", (secret,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    if not row:
+        return None
+    return {"id": row[0], "character_limit": row[1]}
+
+
+@app.route("/api/commands", methods=["POST"])
+def submit_command():
+    customer = get_current_customer()
+    if not customer:
+        return jsonify({"ok": False, "error": "Oturum yok"}), 401
+    data = request.get_json(force=True)
+    command = (data.get("command") or "").strip()
+    if not command:
+        return jsonify({"ok": False, "error": "Komut bos olamaz"}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO commands (customer_id, command) VALUES (%s, %s) RETURNING id", (customer["id"], command))
+    cmd_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True, "command_id": cmd_id})
+
+
+@app.route("/api/commands/poll")
+def poll_commands():
+    customer = get_customer_by_secret()
+    if not customer:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, command FROM commands WHERE customer_id = %s AND status = 'pending' ORDER BY id", (customer["id"],))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True, "commands": [{"id": r[0], "command": r[1]} for r in rows]})
+
+
+@app.route("/api/commands/<int:cmd_id>/result", methods=["POST"])
+def post_command_result(cmd_id):
+    customer = get_customer_by_secret()
+    if not customer:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    data = request.get_json(force=True)
+    result = data.get("result", "")
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE commands SET status='done', result=%s, completed_at=NOW() WHERE id=%s AND customer_id=%s",
+        (result, cmd_id, customer["id"])
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/commands/history")
+def commands_history():
+    customer = get_current_customer()
+    if not customer:
+        return jsonify({"ok": False, "error": "Oturum yok"}), 401
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, command, status, result, created_at, completed_at FROM commands WHERE customer_id=%s ORDER BY id DESC LIMIT 20",
+        (customer["id"],)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True, "commands": [
+        {"id": r[0], "command": r[1], "status": r[2], "result": r[3],
+         "created_at": r[4].isoformat(), "completed_at": r[5].isoformat() if r[5] else None}
+        for r in rows
+    ]})
+
+
+@app.route("/api/status", methods=["POST"])
+def post_status():
+    customer = get_customer_by_secret()
+    if not customer:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    data = request.get_json(force=True)
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO status_reports (customer_id, data, updated_at) VALUES (%s, %s::jsonb, NOW())
+        ON CONFLICT (customer_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+        """,
+        (customer["id"], json.dumps(data))
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/status")
+def get_status():
+    customer = get_current_customer()
+    if not customer:
+        return jsonify({"ok": False, "error": "Oturum yok"}), 401
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT data, updated_at FROM status_reports WHERE customer_id = %s", (customer["id"],))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    if not row:
+        return jsonify({"ok": True, "data": None, "updated_at": None})
+    return jsonify({"ok": True, "data": row[0], "updated_at": row[1].isoformat()})
+
+
 @app.route("/api/admin/create_customer", methods=["POST"])
 def create_customer():
     auth = request.headers.get("Authorization", "")
