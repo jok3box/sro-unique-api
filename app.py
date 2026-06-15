@@ -18,6 +18,58 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+@app.route("/api/db/init")
+def db_init():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS customers (
+                id SERIAL PRIMARY KEY,
+                license_key VARCHAR(64) UNIQUE NOT NULL,
+                client_secret VARCHAR(128) NOT NULL,
+                username VARCHAR(64) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                character_limit INTEGER NOT NULL DEFAULT 5,
+                discord_channel_id VARCHAR(64),
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW(),
+                active BOOLEAN DEFAULT TRUE
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                token VARCHAR(128) PRIMARY KEY,
+                customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                expires_at TIMESTAMP NOT NULL
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS commands (
+                id SERIAL PRIMARY KEY,
+                customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+                command TEXT NOT NULL,
+                status VARCHAR(16) DEFAULT 'pending',
+                result TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                completed_at TIMESTAMP
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS status_reports (
+                customer_id INTEGER PRIMARY KEY REFERENCES customers(id) ON DELETE CASCADE,
+                data JSONB,
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "message": "Tablolar olusturuldu"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/db/debug")
 def db_debug():
     keys = [k for k in os.environ.keys() if any(s in k.upper() for s in ["DATABASE", "POSTGRES", "PG"])]
