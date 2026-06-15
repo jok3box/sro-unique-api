@@ -106,6 +106,14 @@
     font-size: 13px;
   }
   header button:hover { border-color: var(--accent); }
+  header .header-actions { display: flex; gap: 8px; }
+  #stream-toggle.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(255,46,196,0.1);
+  }
+  .masked { filter: blur(0px); }
+  .stream-mode .maskable { color: transparent; text-shadow: 0 0 8px rgba(255,255,255,0.6); user-select: none; }
 
   .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
 
@@ -323,7 +331,10 @@
       <h1>phBot Monitor Dashboard</h1>
       <div class="sub" id="user-info"></div>
     </div>
-    <button onclick="logout()">Çıkış Yap</button>
+    <div class="header-actions">
+      <button id="stream-toggle" onclick="toggleStreamMode()">🔒 Yayın Modu</button>
+      <button onclick="logout()">Çıkış Yap</button>
+    </div>
   </header>
 
   <div class="container">
@@ -393,6 +404,27 @@
 <script>
 const API = "";
 let selectedChars = new Set();
+let streamMode = false;
+
+function toggleStreamMode() {
+  streamMode = !streamMode;
+  const btn = document.getElementById("stream-toggle");
+  const body = document.body;
+  if (streamMode) {
+    btn.classList.add("active");
+    btn.textContent = "🔓 Yayın Modu (Açık)";
+    body.classList.add("stream-mode");
+  } else {
+    btn.classList.remove("active");
+    btn.textContent = "🔒 Yayın Modu";
+    body.classList.remove("stream-mode");
+  }
+  refreshStatus();
+}
+
+function mask(val) {
+  return streamMode ? "•••" : val;
+}
 
 async function checkAuth() {
   try {
@@ -416,7 +448,7 @@ function showDashboard(customer) {
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("dashboard-screen").style.display = "block";
   document.getElementById("user-info").textContent =
-    customer.username + " · Limit: " + customer.character_limit + " karakter · Lisans bitiş: " + new Date(customer.expires_at).toLocaleDateString("tr-TR");
+    customer.username + " · Lisans bitiş: " + new Date(customer.expires_at).toLocaleDateString("tr-TR");
   refreshStatus();
   refreshHistory();
   if (!window._pollInterval) {
@@ -489,7 +521,7 @@ function renderTable(chars) {
   let totalGold = 0, totalDeaths = 0, totalDrops = 0, totalSp = 0;
   let active = 0, idle = 0, stuck = 0;
 
-  const rows = chars.map(c => {
+  const rows = chars.map((c, idx) => {
     totalGold += c.gold_today || 0;
     totalDeaths += c.deaths_today || 0;
     totalDrops += c.drops_today || 0;
@@ -500,19 +532,29 @@ function renderTable(chars) {
     else stuck++;
 
     const checked = selectedChars.has(c.name) ? "checked" : "";
+    const displayName = streamMode ? ("Char " + (idx + 1)) : escapeHtml(c.name);
+    const displayServer = streamMode ? "•••" : escapeHtml(c.server);
+    const displayLevel = streamMode ? "•••" : c.level;
+    const displaySp = streamMode ? "•••" : (c.total_sp || 0).toLocaleString("tr-TR");
+    const displayZone = streamMode ? "•••" : escapeHtml(c.zone || "-");
+    const displayProfile = streamMode ? "•••" : escapeHtml(c.profile || "-");
+    const displayGold = streamMode ? "•••" : (c.gold_today || 0).toLocaleString("tr-TR");
+    const displayDeaths = streamMode ? "•••" : (c.deaths_today || 0);
+    const displayDrops = streamMode ? "•••" : (c.drops_today || 0);
+
     return `<tr>
       <td><input type="checkbox" class="char-checkbox" data-name="${escapeAttr(c.name)}" ${checked} onchange="toggleSelect('${escapeAttr(c.name)}', this.checked)"></td>
       <td>
-        <div class="char-name">${escapeHtml(c.name)}</div>
-        <div class="char-server">${escapeHtml(c.server)}</div>
+        <div class="char-name">${displayName}</div>
+        <div class="char-server">${displayServer}</div>
       </td>
-      <td>${c.level}</td>
-      <td>${(c.total_sp || 0).toLocaleString("tr-TR")}</td>
-      <td>${escapeHtml(c.zone || "-")}</td>
-      <td>${escapeHtml(c.profile || "-")}</td>
-      <td>${(c.gold_today || 0).toLocaleString("tr-TR")}</td>
-      <td>${c.deaths_today || 0}</td>
-      <td>${c.drops_today || 0}</td>
+      <td>${displayLevel}</td>
+      <td>${displaySp}</td>
+      <td>${displayZone}</td>
+      <td>${displayProfile}</td>
+      <td>${displayGold}</td>
+      <td>${displayDeaths}</td>
+      <td>${displayDrops}</td>
       <td><span class="status-dot ${idleInfo.dot}"></span>${idleInfo.text}</td>
       <td>
         <button class="btn-action btn-start" onclick="quickCommand('!baslat ${escapeAttr(c.name)}')">Başlat</button>
@@ -523,15 +565,24 @@ function renderTable(chars) {
 
   tbody.innerHTML = rows;
 
+  const sChars = streamMode ? "•••" : chars.length;
+  const sActive = streamMode ? "•••" : active;
+  const sIdle = streamMode ? "•••" : idle;
+  const sStuck = streamMode ? "•••" : stuck;
+  const sSp = streamMode ? "•••" : totalSp.toLocaleString("tr-TR");
+  const sGold = streamMode ? "•••" : totalGold.toLocaleString("tr-TR");
+  const sDeaths = streamMode ? "•••" : totalDeaths;
+  const sDrops = streamMode ? "•••" : totalDrops;
+
   document.getElementById("summary-bar").innerHTML = `
-    <div class="summary-card"><div class="label">Karakter</div><div class="value">${chars.length}</div></div>
-    <div class="summary-card"><div class="label">Aktif</div><div class="value" style="color:var(--green)">${active}</div></div>
-    <div class="summary-card"><div class="label">Boşta</div><div class="value" style="color:var(--yellow)">${idle}</div></div>
-    <div class="summary-card"><div class="label">Takılı</div><div class="value" style="color:var(--red)">${stuck}</div></div>
-    <div class="summary-card"><div class="label">Toplam SP</div><div class="value">${totalSp.toLocaleString("tr-TR")}</div></div>
-    <div class="summary-card"><div class="label">Bugün Gold</div><div class="value">${totalGold.toLocaleString("tr-TR")}</div></div>
-    <div class="summary-card"><div class="label">Bugün Ölüm</div><div class="value">${totalDeaths}</div></div>
-    <div class="summary-card"><div class="label">Bugün Drop</div><div class="value">${totalDrops}</div></div>
+    <div class="summary-card"><div class="label">Karakter</div><div class="value">${sChars}</div></div>
+    <div class="summary-card"><div class="label">Aktif</div><div class="value" style="color:var(--green)">${sActive}</div></div>
+    <div class="summary-card"><div class="label">Boşta</div><div class="value" style="color:var(--yellow)">${sIdle}</div></div>
+    <div class="summary-card"><div class="label">Takılı</div><div class="value" style="color:var(--red)">${sStuck}</div></div>
+    <div class="summary-card"><div class="label">Toplam SP</div><div class="value">${sSp}</div></div>
+    <div class="summary-card"><div class="label">Bugün Gold</div><div class="value">${sGold}</div></div>
+    <div class="summary-card"><div class="label">Bugün Ölüm</div><div class="value">${sDeaths}</div></div>
+    <div class="summary-card"><div class="label">Bugün Drop</div><div class="value">${sDrops}</div></div>
   `;
 }
 
