@@ -3,6 +3,25 @@ import json
 import requests
 import threading
 import os
+import psycopg2
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def get_db():
+    return psycopg2.connect(DATABASE_URL)
+
+@app.route("/api/db/test")
+def db_test():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT version();")
+        version = cur.fetchone()[0]
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "version": version})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 from datetime import datetime, timedelta
 from collections import defaultdict
 from flask import Flask, jsonify
