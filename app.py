@@ -12,11 +12,62 @@ def get_db():
 
 from datetime import datetime, timedelta
 from collections import defaultdict
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+import secrets
+from werkzeug.security import generate_password_hash
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
+
+ADMIN_SECRET = os.environ.get("ADMIN_SECRET")
+
+@app.route("/api/admin/create_customer", methods=["POST"])
+def create_customer():
+    auth = request.headers.get("Authorization", "")
+    if not ADMIN_SECRET or auth != f"Bearer {ADMIN_SECRET}":
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    data = request.get_json(force=True)
+    username = data.get("username")
+    password = data.get("password")
+    character_limit = data.get("character_limit", 5)
+    days = data.get("days", 30)
+
+    if not username or not password:
+        return jsonify({"ok": False, "error": "username ve password gerekli"}), 400
+
+    license_key = secrets.token_hex(8).upper()
+    client_secret = secrets.token_urlsafe(32)
+    password_hash = generate_password_hash(password)
+    expires_at = datetime.utcnow() + timedelta(days=days)
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO customers (license_key, client_secret, username, password_hash, character_limit, expires_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (license_key, client_secret, username, password_hash, character_limit, expires_at)
+        )
+        customer_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({
+            "ok": True,
+            "customer_id": customer_id,
+            "license_key": license_key,
+            "client_secret": client_secret,
+            "username": username,
+            "character_limit": character_limit,
+            "expires_at": expires_at.isoformat()
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route("/api/db/init")
 def db_init():
