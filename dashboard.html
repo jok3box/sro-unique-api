@@ -254,6 +254,31 @@
   .footer-links { margin-top: 4px; }
 
   .updated-at { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+
+  .bulk-bar {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .bulk-bar button {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #1c1c28;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .bulk-bar button:hover { border-color: var(--accent); }
+  .bulk-bar #bulk-count { color: var(--text-dim); margin-right: auto; }
+  input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+  #bulk-result { margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -281,9 +306,18 @@
   <div class="container">
     <div class="summary-bar" id="summary-bar"></div>
 
+    <div class="bulk-bar" id="bulk-bar">
+      <span id="bulk-count">0 karakter seçili</span>
+      <button onclick="bulkAction('baslat')">▶️ Başlat</button>
+      <button onclick="bulkAction('durdur')">⏹️ Durdur</button>
+      <button onclick="clearSelection()">Seçimi Temizle</button>
+    </div>
+    <div id="bulk-result"></div>
+
     <table>
       <thead>
         <tr>
+          <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)"></th>
           <th>Karakter</th>
           <th>Seviye</th>
           <th>SP</th>
@@ -297,7 +331,7 @@
         </tr>
       </thead>
       <tbody id="char-tbody">
-        <tr><td colspan="10" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
+        <tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
       </tbody>
     </table>
     <div class="updated-at" id="updated-at"></div>
@@ -335,6 +369,7 @@
 
 <script>
 const API = "";
+let selectedChars = new Set();
 
 async function checkAuth() {
   try {
@@ -424,7 +459,7 @@ async function refreshStatus() {
 function renderTable(chars) {
   const tbody = document.getElementById("char-tbody");
   if (!chars.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-dim); padding:24px;">Veri yok.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Veri yok.</td></tr>';
     return;
   }
 
@@ -441,7 +476,9 @@ function renderTable(chars) {
     else if (idleInfo.dot === "dot-yellow") idle++;
     else stuck++;
 
+    const checked = selectedChars.has(c.name) ? "checked" : "";
     return `<tr>
+      <td><input type="checkbox" class="char-checkbox" data-name="${escapeAttr(c.name)}" ${checked} onchange="toggleSelect('${escapeAttr(c.name)}', this.checked)"></td>
       <td>
         <div class="char-name">${escapeHtml(c.name)}</div>
         <div class="char-server">${escapeHtml(c.server)}</div>
@@ -481,6 +518,92 @@ function escapeHtml(str) {
 }
 function escapeAttr(str) {
   return String(str).replace(/'/g, "\\'");
+}
+
+function toggleSelect(name, checked) {
+  if (checked) selectedChars.add(name);
+  else selectedChars.delete(name);
+  updateBulkBar();
+}
+
+function toggleSelectAll(checked) {
+  document.querySelectorAll(".char-checkbox").forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectedChars.add(cb.dataset.name);
+    else selectedChars.delete(cb.dataset.name);
+  });
+  updateBulkBar();
+}
+
+function clearSelection() {
+  selectedChars.clear();
+  document.querySelectorAll(".char-checkbox").forEach(cb => cb.checked = false);
+  const selectAll = document.getElementById("select-all");
+  if (selectAll) selectAll.checked = false;
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById("bulk-bar");
+  const count = document.getElementById("bulk-count");
+  if (selectedChars.size > 0) {
+    bar.style.display = "flex";
+    count.textContent = selectedChars.size + " karakter seçili";
+  } else {
+    bar.style.display = "none";
+  }
+}
+
+async function bulkAction(action) {
+  const resultEl = document.getElementById("bulk-result");
+  const names = Array.from(selectedChars);
+  if (!names.length) return;
+  const cmdPrefix = action === "baslat" ? "!baslat" : "!durdur";
+  resultEl.innerHTML = "";
+  for (const name of names) {
+    const cmd = `${cmdPrefix} ${name}`;
+    try {
+      const r = await fetch(API + "/api/commands", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ command: cmd })
+      });
+      const data = await r.json();
+      const line = document.createElement("div");
+      line.className = "history-item";
+      line.innerHTML = `<span class="history-cmd">${escapeHtml(cmd)}</span> <span class="history-pending" id="bulk-${data.command_id}">İşleniyor...</span>`;
+      resultEl.appendChild(line);
+      pollBulkResult(data.command_id);
+    } catch (e) {}
+  }
+  refreshHistory();
+}
+
+async function pollBulkResult(cmdId) {
+  let attempts = 0;
+  const poll = setInterval(async () => {
+    attempts++;
+    try {
+      const hr = await fetch(API + "/api/commands/history", { credentials: "include" });
+      const hdata = await hr.json();
+      const item = (hdata.commands || []).find(c => c.id === cmdId);
+      const el = document.getElementById("bulk-" + cmdId);
+      if (item && item.status === "done") {
+        if (el) {
+          el.className = "";
+          el.textContent = (item.result || "").split("\n")[0];
+        }
+        clearInterval(poll);
+        refreshStatus();
+      } else if (attempts > 20) {
+        if (el) { el.textContent = "Zaman aşımı"; }
+        clearInterval(poll);
+      }
+    } catch (e) {
+      clearInterval(poll);
+    }
+  }, 1500);
 }
 
 function quickCommand(cmd) {
