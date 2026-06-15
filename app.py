@@ -18,6 +18,11 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+@app.route("/api/db/debug")
+def db_debug():
+    keys = [k for k in os.environ.keys() if any(s in k.upper() for s in ["DATABASE", "POSTGRES", "PG"])]
+    return jsonify({"matching_keys": keys, "DATABASE_URL_set": DATABASE_URL is not None})
+
 @app.route("/api/db/test")
 def db_test():
     try:
