@@ -252,6 +252,21 @@
   }
   .footer-brand a:hover { text-decoration: underline; }
   .footer-links { margin-top: 4px; }
+  .login-footer {
+    margin-top: 28px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+  .login-footer b { color: var(--accent); }
+  .login-footer a {
+    color: var(--accent2);
+    text-decoration: none;
+    margin: 0 6px;
+  }
+  .login-footer a:hover { text-decoration: underline; }
+  .login-footer .links { margin-top: 4px; }
 
   .updated-at { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
 
@@ -291,6 +306,14 @@
     <input id="password" type="password" placeholder="Şifre" autocomplete="current-password">
     <button onclick="login()">Giriş Yap</button>
     <div id="login-error"></div>
+    <div class="login-footer">
+      Created by <b>JOK3BOX</b>
+      <div class="links">
+        <a href="https://www.kick.com/JOK3BOX" target="_blank">Kick</a>
+        ·
+        <a href="https://discord.gg/p6nHCY4TET" target="_blank">Discord</a>
+      </div>
+    </div>
   </div>
 </div>
 
