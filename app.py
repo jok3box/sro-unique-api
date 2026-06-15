@@ -537,6 +537,13 @@ def widget_set(server):
         _widget_state["server"] = server
     return jsonify({"ok": True, "server": server})
 
+@app.route("/dashboard")
+def dashboard_page():
+    path = os.path.join(os.path.dirname(__file__), "dashboard.html")
+    with open(path, "r", encoding="utf-8") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
 @app.route("/widget")
 def widget_page():
     path = os.path.join(os.path.dirname(__file__), "widget.html")
