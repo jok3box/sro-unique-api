@@ -537,6 +537,12 @@ def widget_set(server):
         _widget_state["server"] = server
     return jsonify({"ok": True, "server": server})
 
+@app.route("/assets/<path:filename>")
+def serve_asset(filename):
+    from flask import send_from_directory
+    assets_dir = os.path.join(os.path.dirname(__file__), "assets")
+    return send_from_directory(assets_dir, filename)
+
 @app.route("/dashboard")
 def dashboard_page():
     path = os.path.join(os.path.dirname(__file__), "dashboard.html")

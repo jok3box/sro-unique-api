@@ -21,9 +21,25 @@
   body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-    background: var(--bg);
+    background: var(--bg) url('/assets/tema.png') center center / cover no-repeat fixed;
     color: var(--text);
     min-height: 100vh;
+  }
+  .login-banner {
+    width: 100%;
+    aspect-ratio: 1920 / 480;
+    object-fit: cover;
+    border-radius: 12px 12px 0 0;
+    display: block;
+    margin: -40px -40px 20px -40px;
+    width: calc(100% + 80px);
+  }
+  .header-banner {
+    width: 100%;
+    height: 64px;
+    object-fit: cover;
+    display: block;
+    border-bottom: 1px solid var(--border);
   }
   .center-screen {
     display: flex;
@@ -308,6 +324,7 @@
 
 <div id="login-screen" class="center-screen">
   <div class="login-box">
+    <img class="login-banner" src="/assets/kapak.png" alt="JOK3BOX">
     <h1>phBot Monitor</h1>
     <p>Dashboard'a giriş yapın</p>
     <input id="username" placeholder="Kullanıcı adı" autocomplete="username">
@@ -326,6 +343,7 @@
 </div>
 
 <div id="dashboard-screen" style="display:none">
+  <img class="header-banner" src="/assets/kapak.png" alt="JOK3BOX">
   <header>
     <div>
       <h1>phBot Monitor Dashboard</h1>
