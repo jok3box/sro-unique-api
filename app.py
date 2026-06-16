@@ -16,9 +16,20 @@ from flask import Flask, jsonify, request
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 CORS(app)
+
+# Brute-force/asiri istek korumasi. Bellek-ici depolama kullaniyoruz (tek
+# Railway instance'i icin yeterli); olcek buyurse Redis'e gecilebilir.
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per minute"],
+    storage_uri="memory://",
+)
 
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET")
 
@@ -48,6 +59,7 @@ def get_current_customer():
 
 
 @app.route("/api/auth/login", methods=["POST"])
+@limiter.limit("10 per minute")
 def auth_login():
     data = request.get_json(force=True)
     username = data.get("username", "")
@@ -237,6 +249,7 @@ def get_status():
 
 
 @app.route("/api/admin/create_customer", methods=["POST"])
+@limiter.limit("20 per minute")
 def create_customer():
     if not _check_admin_auth():
         return jsonify({"ok": False, "error": "Unauthorized"}), 401
