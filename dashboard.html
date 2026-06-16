@@ -26,7 +26,6 @@
     min-height: 100vh;
   }
   .login-banner {
-    width: 100%;
     aspect-ratio: 1920 / 480;
     object-fit: cover;
     border-radius: 12px 12px 0 0;
@@ -128,10 +127,9 @@
     color: var(--accent);
     background: rgba(255,46,196,0.1);
   }
-  .masked { filter: blur(0px); }
   .stream-mode .maskable { color: transparent; text-shadow: 0 0 8px rgba(255,255,255,0.6); user-select: none; }
 
-  .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .container { padding: 20px; max-width: 1300px; margin: 0 auto; }
 
   .summary-bar {
     display: flex;
@@ -149,6 +147,26 @@
   }
   .summary-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
   .summary-card .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 20px;
+  }
+  .panel h3 { margin: 0 0 6px; font-size: 14px; }
+  .panel .hint { color: var(--text-dim); font-size: 12px; margin-bottom: 12px; line-height: 1.6; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 980px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
 
   table {
     width: 100%;
@@ -169,6 +187,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 1px solid var(--border);
+    white-space: nowrap;
   }
   tbody td {
     padding: 10px 12px;
@@ -205,15 +224,6 @@
   .btn-start:hover { border-color: var(--green); color: var(--green); }
   .btn-stop:hover { border-color: var(--red); color: var(--red); }
 
-  .command-panel {
-    margin-top: 24px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px;
-  }
-  .command-panel h3 { margin: 0 0 6px; font-size: 14px; }
-  .command-panel .hint { color: var(--text-dim); font-size: 12px; margin-bottom: 12px; line-height: 1.6; }
   .command-row { display: flex; gap: 8px; }
   .command-row input {
     flex: 1;
@@ -237,19 +247,6 @@
   }
   .command-row button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  #command-result {
-    margin-top: 14px;
-    background: #1c1c28;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    font-family: monospace;
-    font-size: 12px;
-    white-space: pre-wrap;
-    min-height: 20px;
-    color: var(--text-dim);
-  }
-
   .history-item {
     border-bottom: 1px solid var(--border);
     padding: 8px 0;
@@ -260,6 +257,7 @@
   .history-time { color: var(--text-dim); font-size: 11px; }
   .history-result { white-space: pre-wrap; margin-top: 4px; color: var(--text); font-family: monospace; }
   .history-pending { color: var(--yellow); }
+  #history-list { max-height: 480px; overflow-y: auto; }
 
   .footer-brand {
     text-align: center;
@@ -269,11 +267,7 @@
     letter-spacing: 1px;
   }
   .footer-brand b { color: var(--accent); }
-  .footer-brand a {
-    color: var(--accent2);
-    text-decoration: none;
-    margin: 0 8px;
-  }
+  .footer-brand a { color: var(--accent2); text-decoration: none; margin: 0 8px; }
   .footer-brand a:hover { text-decoration: underline; }
   .footer-links { margin-top: 4px; }
   .login-footer {
@@ -284,19 +278,13 @@
     letter-spacing: 1px;
   }
   .login-footer b { color: var(--accent); }
-  .login-footer a {
-    color: var(--accent2);
-    text-decoration: none;
-    margin: 0 6px;
-  }
+  .login-footer a { color: var(--accent2); text-decoration: none; margin: 0 6px; }
   .login-footer a:hover { text-decoration: underline; }
   .login-footer .links { margin-top: 4px; }
 
-  .updated-at { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
-  .table-toggle-row {
-    display: none;
-    margin-bottom: 12px;
-  }
+  .updated-at { font-size: 11px; color: var(--text-dim); margin-top: 6px; margin-bottom: 16px; }
+
+  .table-toggle-row { display: none; margin-bottom: 12px; }
   .table-toggle-row.show { display: block; }
   .table-toggle-row button {
     padding: 8px 16px;
@@ -317,10 +305,7 @@
     margin-bottom: 12px;
   }
   .radar-header h3 { margin: 0; font-size: 14px; }
-  .server-switch {
-    display: flex;
-    gap: 6px;
-  }
+  .server-switch { display: flex; gap: 6px; }
   .server-switch button {
     padding: 6px 14px;
     border-radius: 6px;
@@ -422,56 +407,7 @@
   <div class="container">
     <div class="summary-bar" id="summary-bar"></div>
 
-    <div class="bulk-bar" id="bulk-bar">
-      <span id="bulk-count">0 karakter seçili</span>
-      <button onclick="bulkAction('baslat')">▶️ Başlat</button>
-      <button onclick="bulkAction('durdur')">⏹️ Durdur</button>
-      <button onclick="clearSelection()">Seçimi Temizle</button>
-    </div>
-    <div id="bulk-result"></div>
-
-    <div class="table-toggle-row" id="table-toggle-row">
-      <button onclick="toggleTable()" id="table-toggle-btn">🙈 Karakter Listesini Gizle</button>
-    </div>
-
-    <div id="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)"></th>
-          <th>Karakter</th>
-          <th>Seviye</th>
-          <th>SP</th>
-          <th>Bölge</th>
-          <th>Profil</th>
-          <th>Bugün Gold</th>
-          <th>Bugün Ölüm</th>
-          <th>Bugün Drop</th>
-          <th>Durum</th>
-          <th>Aksiyon</th>
-        </tr>
-      </thead>
-      <tbody id="char-tbody">
-        <tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
-      </tbody>
-    </table>
-    </div>
-    <div class="updated-at" id="updated-at"></div>
-
-    <div class="command-panel">
-      <h3>Komut Gönder</h3>
-      <div class="hint">
-        Örnekler: <b>!durdur AKK47</b> · <b>!baslat hepsi</b> · <b>!reverse MAIN Lidya SANCAKTEPE</b> ·
-        <b>!returnscroll Tier3 AKK47</b> · <b>!goster MAIN Lidya</b> · <b>!rapor</b> · <b>!gold</b>
-      </div>
-      <div class="command-row">
-        <input id="command-input" placeholder="!komut ..." onkeydown="if(event.key==='Enter') sendCommand()">
-        <button id="send-btn" onclick="sendCommand()">Gönder</button>
-      </div>
-      <div id="command-result"></div>
-    </div>
-
-    <div class="command-panel">
+    <div class="panel">
       <div class="radar-header">
         <h3>🎯 Unique Radar</h3>
         <div class="server-switch">
@@ -484,10 +420,63 @@
       </div>
     </div>
 
-    <div class="command-panel">
-      <h3>Son Komutlar</h3>
-      <div id="history-list">
-        <div style="color:var(--text-dim); font-size:12px;">Henüz komut yok.</div>
+    <div class="bulk-bar" id="bulk-bar">
+      <span id="bulk-count">0 karakter seçili</span>
+      <button onclick="bulkAction('baslat')">▶️ Başlat</button>
+      <button onclick="bulkAction('durdur')">⏹️ Durdur</button>
+      <button onclick="clearSelection()">Seçimi Temizle</button>
+    </div>
+    <div id="bulk-result"></div>
+
+    <div class="table-toggle-row" id="table-toggle-row">
+      <button onclick="toggleTable()" id="table-toggle-btn">🙈 Karakter Listesini Gizle</button>
+    </div>
+
+    <div class="main-grid">
+      <div>
+        <div id="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)"></th>
+                <th>Karakter</th>
+                <th>Seviye</th>
+                <th>Exp %</th>
+                <th>SP</th>
+                <th>Bölge</th>
+                <th>Profil</th>
+                <th>Bugün Gold</th>
+                <th>Bugün Ölüm</th>
+                <th>Bugün Drop</th>
+                <th>Durum</th>
+                <th>Aksiyon</th>
+              </tr>
+            </thead>
+            <tbody id="char-tbody">
+              <tr><td colspan="12" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="updated-at" id="updated-at"></div>
+
+        <div class="panel">
+          <h3>Komut Gönder</h3>
+          <div class="hint">
+            Örnekler: <b>!durdur AKK47</b> · <b>!baslat hepsi</b> · <b>!reverse MAIN Lidya SANCAKTEPE</b> ·
+            <b>!returnscroll Tier3 AKK47</b> · <b>!goster MAIN Lidya</b> · <b>!rapor</b> · <b>!gold</b>
+          </div>
+          <div class="command-row">
+            <input id="command-input" placeholder="!komut ..." onkeydown="if(event.key==='Enter') sendCommand()">
+            <button id="send-btn" onclick="sendCommand()">Gönder</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:0;">
+        <h3>Son Komutlar</h3>
+        <div id="history-list">
+          <div style="color:var(--text-dim); font-size:12px;">Henüz komut yok.</div>
+        </div>
       </div>
     </div>
 
@@ -506,6 +495,7 @@
 const API = "";
 let selectedChars = new Set();
 let streamMode = false;
+let radarServer = "knidos";
 
 function toggleStreamMode() {
   streamMode = !streamMode;
@@ -539,8 +529,36 @@ function toggleTable() {
   }
 }
 
-function mask(val) {
-  return streamMode ? "•••" : val;
+function switchRadarServer(server) {
+  radarServer = server;
+  document.getElementById("radar-knidos").classList.toggle("active", server === "knidos");
+  document.getElementById("radar-lidya").classList.toggle("active", server === "lidya");
+  loadUniqueRadar();
+}
+
+async function loadUniqueRadar() {
+  const grid = document.getElementById("unique-grid");
+  try {
+    const r = await fetch(API + "/api/uniques?server=" + radarServer);
+    const data = await r.json();
+    if (!data.data || !data.data.length) {
+      grid.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Veri yok.</div>';
+      return;
+    }
+    const sorted = [...data.data].sort((a, b) => new Date(a.nextSpawn) - new Date(b.nextSpawn));
+    grid.innerHTML = sorted.map(u => {
+      const topZone = (u.locationStats && u.locationStats[0]) ? u.locationStats[0].zone : "-";
+      const topPct = (u.locationStats && u.locationStats[0]) ? u.locationStats[0].pct : null;
+      return `<div class="unique-card">
+        <div class="u-name">${escapeHtml(u.name)}</div>
+        <div class="u-row">Son öldürme: <b>${escapeHtml(u.lastKill || "-")}</b></div>
+        <div class="u-row">Olası bölge: <b>${escapeHtml(topZone)}${topPct ? " (%" + topPct + ")" : ""}</b></div>
+        <div class="u-window">⏱ ${escapeHtml(u.earlySpawn || "?")} – ${escapeHtml(u.lateSpawn || "?")}</div>
+      </div>`;
+    }).join("");
+  } catch (e) {
+    grid.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Yüklenemedi.</div>';
+  }
 }
 
 async function checkAuth() {
@@ -592,43 +610,7 @@ async function login() {
     });
     const data = await r.json();
     if (data.ok) {
-      let radarServer = "knidos";
-
-function switchRadarServer(server) {
-  radarServer = server;
-  document.getElementById("radar-knidos").classList.toggle("active", server === "knidos");
-  document.getElementById("radar-lidya").classList.toggle("active", server === "lidya");
-  loadUniqueRadar();
-}
-
-async function loadUniqueRadar() {
-  const grid = document.getElementById("unique-grid");
-  try {
-    const r = await fetch(API + "/api/uniques?server=" + radarServer);
-    const data = await r.json();
-    if (!data.data || !data.data.length) {
-      grid.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Veri yok.</div>';
-      return;
-    }
-    const sorted = [...data.data].sort((a, b) => new Date(a.nextSpawn) - new Date(b.nextSpawn));
-    grid.innerHTML = sorted.map(u => {
-      const topZone = (u.locationStats && u.locationStats[0]) ? u.locationStats[0].zone : "-";
-      const topPct = (u.locationStats && u.locationStats[0]) ? u.locationStats[0].pct : null;
-      return `<div class="unique-card">
-        <div class="u-name">${escapeHtml(u.name)}</div>
-        <div class="u-row">Son öldürme: <b>${escapeHtml(u.lastKill || "-")}</b></div>
-        <div class="u-row">Olası bölge: <b>${escapeHtml(topZone)}${topPct ? " (%" + topPct + ")" : ""}</b></div>
-        <div class="u-window">⏱ ${escapeHtml(u.earlySpawn || "?")} – ${escapeHtml(u.lateSpawn || "?")}</div>
-      </div>`;
-    }).join("");
-  } catch (e) {
-    grid.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Yüklenemedi.</div>';
-  }
-}
-
-checkAuth();
-loadUniqueRadar();
-setInterval(loadUniqueRadar, 60000);
+      checkAuth();
     } else {
       errEl.textContent = data.error || "Giriş başarısız.";
     }
@@ -667,7 +649,7 @@ async function refreshStatus() {
 function renderTable(chars) {
   const tbody = document.getElementById("char-tbody");
   if (!chars.length) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Veri yok.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:var(--text-dim); padding:24px;">Veri yok.</td></tr>';
     return;
   }
 
@@ -688,6 +670,7 @@ function renderTable(chars) {
     const displayName = streamMode ? ("Char " + (idx + 1)) : escapeHtml(c.name);
     const displayServer = streamMode ? "•••" : escapeHtml(c.server);
     const displayLevel = streamMode ? "•••" : c.level;
+    const displayExp = streamMode ? "•••" : (c.exp_percent != null ? c.exp_percent + "%" : "-");
     const displaySp = streamMode ? "•••" : (c.total_sp || 0).toLocaleString("tr-TR");
     const displayZone = streamMode ? "•••" : escapeHtml(c.zone || "-");
     const displayProfile = streamMode ? "•••" : escapeHtml(c.profile || "-");
@@ -702,6 +685,7 @@ function renderTable(chars) {
         <div class="char-server">${displayServer}</div>
       </td>
       <td>${displayLevel}</td>
+      <td>${displayExp}</td>
       <td>${displaySp}</td>
       <td>${displayZone}</td>
       <td>${displayProfile}</td>
@@ -797,10 +781,6 @@ async function bulkAction(action) {
         body: JSON.stringify({ command: cmd })
       });
       const data = await r.json();
-      const line = document.createElement("div");
-      line.className = "history-item";
-      line.innerHTML = `<span class="history-cmd">${escapeHtml(cmd)}</span> <span class="history-pending" id="bulk-${data.command_id}">İşleniyor...</span>`;
-      resultEl.appendChild(line);
       pollBulkResult(data.command_id);
     } catch (e) {}
   }
@@ -815,17 +795,13 @@ async function pollBulkResult(cmdId) {
       const hr = await fetch(API + "/api/commands/history", { credentials: "include" });
       const hdata = await hr.json();
       const item = (hdata.commands || []).find(c => c.id === cmdId);
-      const el = document.getElementById("bulk-" + cmdId);
       if (item && item.status === "done") {
-        if (el) {
-          el.className = "";
-          el.textContent = (item.result || "").split("\n")[0];
-        }
         clearInterval(poll);
         refreshStatus();
+        refreshHistory();
       } else if (attempts > 20) {
-        if (el) { el.textContent = "Zaman aşımı"; }
         clearInterval(poll);
+        refreshHistory();
       }
     } catch (e) {
       clearInterval(poll);
@@ -843,9 +819,7 @@ async function sendCommand() {
   const cmd = input.value.trim();
   if (!cmd) return;
   const btn = document.getElementById("send-btn");
-  const resultEl = document.getElementById("command-result");
   btn.disabled = true;
-  resultEl.textContent = "Gönderiliyor...";
 
   try {
     const r = await fetch(API + "/api/commands", {
@@ -856,12 +830,12 @@ async function sendCommand() {
     });
     const data = await r.json();
     if (!data.ok) {
-      resultEl.textContent = "Hata: " + (data.error || "bilinmiyor");
       btn.disabled = false;
       return;
     }
     const cmdId = data.command_id;
-    resultEl.textContent = "İşleniyor... (komut yerel sisteme iletildi, sonuç bekleniyor)";
+    input.value = "";
+    refreshHistory();
 
     let attempts = 0;
     const poll = setInterval(async () => {
@@ -870,20 +844,17 @@ async function sendCommand() {
       const hdata = await hr.json();
       const item = (hdata.commands || []).find(c => c.id === cmdId);
       if (item && item.status === "done") {
-        resultEl.textContent = item.result;
         clearInterval(poll);
         btn.disabled = false;
-        input.value = "";
         refreshHistory();
         refreshStatus();
       } else if (attempts > 20) {
-        resultEl.textContent = "Zaman aşımı - sonuç alınamadı.";
         clearInterval(poll);
         btn.disabled = false;
+        refreshHistory();
       }
     }, 1500);
   } catch (e) {
-    resultEl.textContent = "Bağlantı hatası.";
     btn.disabled = false;
   }
 }
@@ -898,7 +869,7 @@ async function refreshHistory() {
       list.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Henüz komut yok.</div>';
       return;
     }
-    list.innerHTML = data.commands.slice(0, 10).map(c => {
+    list.innerHTML = data.commands.slice(0, 15).map(c => {
       const time = new Date(c.created_at).toLocaleString("tr-TR");
       const statusText = c.status === "done"
         ? `<div class="history-result">${escapeHtml(c.result || "")}</div>`
@@ -913,6 +884,8 @@ async function refreshHistory() {
 }
 
 checkAuth();
+loadUniqueRadar();
+setInterval(loadUniqueRadar, 60000);
 </script>
 </body>
 </html>
