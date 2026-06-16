@@ -27,7 +27,8 @@
   }
   .login-banner {
     aspect-ratio: 1920 / 480;
-    object-fit: cover;
+    object-fit: contain;
+    background: #000;
     border-radius: 12px 12px 0 0;
     display: block;
     margin: -40px -40px 20px -40px;
@@ -35,8 +36,10 @@
   }
   .header-banner {
     width: 100%;
-    height: 64px;
-    object-fit: cover;
+    height: 110px;
+    object-fit: contain;
+    object-position: center;
+    background: #000;
     display: block;
     border-bottom: 1px solid var(--border);
   }
@@ -469,7 +472,6 @@
                 <th>Karakter</th>
                 <th>Seviye</th>
                 <th>Exp %</th>
-                <th>SP</th>
                 <th>Bölge</th>
                 <th>Profil</th>
                 <th>Bugün Gold</th>
@@ -480,7 +482,7 @@
               </tr>
             </thead>
             <tbody id="char-tbody">
-              <tr><td colspan="12" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
+              <tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
@@ -679,7 +681,7 @@ async function refreshStatus() {
 function renderTable(chars) {
   const tbody = document.getElementById("char-tbody");
   if (!chars.length) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:var(--text-dim); padding:24px;">Veri yok.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Veri yok.</td></tr>';
     return;
   }
 
@@ -716,7 +718,6 @@ function renderTable(chars) {
       </td>
       <td>${displayLevel}</td>
       <td>${displayExp}</td>
-      <td>${displaySp}</td>
       <td>${displayZone}</td>
       <td>${displayProfile}</td>
       <td>${displayGold}</td>
