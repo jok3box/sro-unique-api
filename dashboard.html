@@ -551,6 +551,31 @@
         </div>
 
         <div class="mixer-group">
+          <div class="mixer-group-label">Koordinat / Radius</div>
+          <button class="mixer-btn" onclick="toggleMixerForm('coord-form')">📍 Koordinat Değiştir...</button>
+          <div class="mixer-inline-form" id="coord-form">
+            <input id="coord-server" placeholder="Sunucu (örn: Lidya)">
+            <input id="coord-value" placeholder="X,Y (örn: 1500,2300)">
+            <button class="apply-btn" onclick="mixerCoord()">Uygula</button>
+          </div>
+          <button class="mixer-btn" onclick="toggleMixerForm('radius-form')">⭕ Radius Değiştir...</button>
+          <div class="mixer-inline-form" id="radius-form">
+            <input id="radius-server" placeholder="Sunucu (örn: Lidya)">
+            <input id="radius-value" placeholder="Değer (örn: 50)">
+            <button class="apply-btn" onclick="mixerRadius()">Uygula</button>
+          </div>
+        </div>
+
+        <div class="mixer-group">
+          <div class="mixer-group-label">Tehlikeli</div>
+          <button class="mixer-btn stop" onclick="toggleMixerForm('terminate-form')">⛔ Client Kapat (Terminate)...</button>
+          <div class="mixer-inline-form" id="terminate-form">
+            <input id="terminate-server" placeholder="Sunucu (örn: Lidya)">
+            <button class="apply-btn" onclick="mixerTerminate()">Uygula</button>
+          </div>
+        </div>
+
+        <div class="mixer-group">
           <div class="mixer-group-label">Hızlı Raporlar</div>
           <button class="mixer-btn" onclick="quickReport('!rapor')">📋 Saatlik Rapor</button>
           <button class="mixer-btn" onclick="quickReport('!gold')">💰 Gold Raporu</button>
@@ -962,6 +987,44 @@ async function mixerReverse() {
   if (!names.length) { mixerLog("Önce karakter seçin."); return; }
   for (const name of names) {
     const cmd = `!reverse ${group} ${name} ${target}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  }
+}
+
+async function mixerCoord() {
+  const server = document.getElementById("coord-server").value.trim();
+  const value = document.getElementById("coord-value").value.trim();
+  const names = Array.from(selectedChars);
+  if (!server || !value) { mixerLog("Sunucu ve X,Y girin."); return; }
+  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const name of names) {
+    const cmd = `!koordinat ${server} ${name} ${value}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  }
+}
+
+async function mixerRadius() {
+  const server = document.getElementById("radius-server").value.trim();
+  const value = document.getElementById("radius-value").value.trim();
+  const names = Array.from(selectedChars);
+  if (!server || !value) { mixerLog("Sunucu ve değer girin."); return; }
+  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const name of names) {
+    const cmd = `!radius ${server} ${name} ${value}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  }
+}
+
+async function mixerTerminate() {
+  const server = document.getElementById("terminate-server").value.trim();
+  const names = Array.from(selectedChars);
+  if (!server) { mixerLog("Sunucu girin."); return; }
+  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const name of names) {
+    const cmd = `!terminate ${server} ${name}`;
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
   }
