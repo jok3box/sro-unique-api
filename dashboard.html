@@ -857,9 +857,9 @@ function renderTable(chars) {
   const sIdle = streamMode ? "•••" : idle;
   const sStuck = streamMode ? "•••" : stuck;
   const sSp = streamMode ? "•••" : totalSp.toLocaleString("tr-TR");
-  const sGold = streamMode ? "•••" : totalGold.toLocaleString("tr-TR");
-  const sDeaths = streamMode ? "•••" : totalDeaths;
-  const sDrops = streamMode ? "•••" : totalDrops;
+  const sGold = totalGold.toLocaleString("tr-TR");
+  const sDeaths = totalDeaths;
+  const sDrops = totalDrops;
 
   document.getElementById("summary-bar").innerHTML = `
     <div class="summary-card"><div class="label">Karakter</div><div class="value">${sChars}</div></div>
