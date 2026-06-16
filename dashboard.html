@@ -132,7 +132,7 @@
   }
   .stream-mode .maskable { color: transparent; text-shadow: 0 0 8px rgba(255,255,255,0.6); user-select: none; }
 
-  .container { padding: 20px; max-width: 1300px; margin: 0 auto; }
+  .container { padding: 20px; max-width: 1500px; margin: 0 auto; }
 
   .summary-bar {
     display: flex;
@@ -163,18 +163,97 @@
 
   .main-grid {
     display: grid;
-    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
-    gap: 20px;
+    grid-template-columns: minmax(0, 220px) minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
     align-items: start;
     width: 100%;
   }
-  .main-grid > div {
-    min-width: 0;
-    width: 100%;
-  }
-  @media (max-width: 980px) {
+  .main-grid > div { min-width: 0; width: 100%; }
+  @media (max-width: 1180px) {
     .main-grid { grid-template-columns: 1fr; }
   }
+
+  .mixer-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: sticky;
+    top: 16px;
+  }
+  .mixer-panel h3 { margin: 0 0 4px; font-size: 14px; }
+  .mixer-count {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mixer-count b { color: var(--accent2); }
+  .mixer-group { margin-bottom: 14px; }
+  .mixer-group-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .mixer-btn {
+    display: block;
+    width: 100%;
+    padding: 9px 10px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #1c1c28;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    text-align: left;
+  }
+  .mixer-btn:hover { border-color: var(--accent2); }
+  .mixer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .mixer-btn.start:hover { border-color: var(--green); color: var(--green); }
+  .mixer-btn.stop:hover { border-color: var(--red); color: var(--red); }
+  .mixer-inline-form {
+    display: none;
+    background: #1c1c28;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+  .mixer-inline-form.show { display: block; }
+  .mixer-inline-form input {
+    width: 100%;
+    padding: 7px 8px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12px;
+  }
+  .mixer-inline-form .apply-btn {
+    width: 100%;
+    padding: 7px;
+    border-radius: 6px;
+    border: none;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #0a0a0f;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  #mixer-result {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  #mixer-result .m-line { padding: 3px 0; border-bottom: 1px solid var(--border); }
+  #mixer-result .m-line:last-child { border-bottom: none; }
 
   #table-wrapper {
     overflow-x: auto;
@@ -188,7 +267,7 @@
     border-radius: 10px;
     overflow: hidden;
     font-size: 13px;
-    min-width: 700px;
+    min-width: 620px;
   }
   thead th {
     text-align: left;
@@ -209,6 +288,7 @@
   }
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody tr.row-selected { background: rgba(255,46,196,0.06); }
 
   .status-dot {
     display: inline-block;
@@ -223,19 +303,6 @@
 
   .char-name { font-weight: 600; }
   .char-server { color: var(--text-dim); font-size: 11px; }
-
-  .btn-action {
-    padding: 5px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: #1c1c28;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-    margin-right: 4px;
-  }
-  .btn-start:hover { border-color: var(--green); color: var(--green); }
-  .btn-stop:hover { border-color: var(--red); color: var(--red); }
 
   .command-row { display: flex; gap: 8px; }
   .command-row input {
@@ -371,30 +438,7 @@
     margin-bottom: 6px;
   }
 
-  .bulk-bar {
-    display: none;
-    align-items: center;
-    gap: 10px;
-    background: var(--panel);
-    border: 1px solid var(--accent);
-    border-radius: 10px;
-    padding: 10px 16px;
-    margin-bottom: 12px;
-    font-size: 13px;
-  }
-  .bulk-bar button {
-    padding: 6px 14px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: #1c1c28;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-  }
-  .bulk-bar button:hover { border-color: var(--accent); }
-  .bulk-bar #bulk-count { color: var(--text-dim); margin-right: auto; }
   input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-  #bulk-result { margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -450,19 +494,56 @@
       </div>
     </div>
 
-    <div class="bulk-bar" id="bulk-bar">
-      <span id="bulk-count">0 karakter seçili</span>
-      <button onclick="bulkAction('baslat')">▶️ Başlat</button>
-      <button onclick="bulkAction('durdur')">⏹️ Durdur</button>
-      <button onclick="clearSelection()">Seçimi Temizle</button>
-    </div>
-    <div id="bulk-result"></div>
-
     <div class="table-toggle-row" id="table-toggle-row">
       <button onclick="toggleTable()" id="table-toggle-btn">🙈 Karakter Listesini Gizle</button>
     </div>
 
     <div class="main-grid">
+      <div class="mixer-panel">
+        <h3>🎛️ Komut Mixer</h3>
+        <div class="mixer-count"><b id="mixer-selected-count">0</b> karakter seçili</div>
+
+        <div class="mixer-group">
+          <div class="mixer-group-label">Temel</div>
+          <button class="mixer-btn start" onclick="mixerSimple('baslat')">▶️ Başlat</button>
+          <button class="mixer-btn stop" onclick="mixerSimple('durdur')">⏹️ Durdur</button>
+        </div>
+
+        <div class="mixer-group">
+          <div class="mixer-group-label">Görünüm</div>
+          <button class="mixer-btn" onclick="mixerSimple('goster')">👁️ Client Göster</button>
+        </div>
+
+        <div class="mixer-group">
+          <div class="mixer-group-label">Return Scroll</div>
+          <button class="mixer-btn" onclick="toggleMixerForm('rs-form')">↩️ Return Scroll...</button>
+          <div class="mixer-inline-form" id="rs-form">
+            <input id="rs-group" placeholder="Grup (örn: MAIN)">
+            <button class="apply-btn" onclick="mixerWithGroup('returnscroll', 'rs-group')">Uygula</button>
+          </div>
+        </div>
+
+        <div class="mixer-group">
+          <div class="mixer-group-label">Reverse Return</div>
+          <button class="mixer-btn" onclick="toggleMixerForm('rev-form')">🔄 Reverse Return...</button>
+          <div class="mixer-inline-form" id="rev-form">
+            <input id="rev-group" placeholder="Grup (örn: MAIN)">
+            <input id="rev-target" placeholder="Hedef nick">
+            <button class="apply-btn" onclick="mixerReverse()">Uygula</button>
+          </div>
+        </div>
+
+        <div class="mixer-group">
+          <div class="mixer-group-label">Hızlı Raporlar</div>
+          <button class="mixer-btn" onclick="quickReport('!rapor')">📋 Saatlik Rapor</button>
+          <button class="mixer-btn" onclick="quickReport('!gold')">💰 Gold Raporu</button>
+          <button class="mixer-btn" onclick="quickReport('!olumler')">💀 Ölüm Raporu</button>
+          <button class="mixer-btn" onclick="quickReport('!dropler')">🎲 Drop Raporu</button>
+        </div>
+
+        <div id="mixer-result"></div>
+      </div>
+
       <div>
         <div id="table-wrapper">
           <table>
@@ -478,21 +559,20 @@
                 <th>Bugün Ölüm</th>
                 <th>Bugün Drop</th>
                 <th>Durum</th>
-                <th>Aksiyon</th>
               </tr>
             </thead>
             <tbody id="char-tbody">
-              <tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
+              <tr><td colspan="10" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
         <div class="updated-at" id="updated-at"></div>
 
         <div class="panel">
-          <h3>Komut Gönder</h3>
+          <h3>Serbest Komut</h3>
           <div class="hint">
-            Örnekler: <b>!durdur AKK47</b> · <b>!baslat hepsi</b> · <b>!reverse MAIN Lidya SANCAKTEPE</b> ·
-            <b>!returnscroll Tier3 AKK47</b> · <b>!goster MAIN Lidya</b> · <b>!rapor</b> · <b>!gold</b>
+            Mixer'daki butonlar yetmediğinde doğrudan komut yazabilirsiniz. Örnekler:
+            <b>!durdur AKK47</b> · <b>!baslat hepsi</b> · <b>!reverse MAIN Lidya SANCAKTEPE</b>
           </div>
           <div class="command-row">
             <input id="command-input" placeholder="!komut ..." onkeydown="if(event.key==='Enter') sendCommand()">
@@ -681,7 +761,7 @@ async function refreshStatus() {
 function renderTable(chars) {
   const tbody = document.getElementById("char-tbody");
   if (!chars.length) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Veri yok.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-dim); padding:24px;">Veri yok.</td></tr>';
     return;
   }
 
@@ -703,14 +783,13 @@ function renderTable(chars) {
     const displayServer = streamMode ? "•••" : escapeHtml(c.server);
     const displayLevel = streamMode ? "•••" : c.level;
     const displayExp = streamMode ? "•••" : (c.exp_percent != null ? c.exp_percent + "%" : "-");
-    const displaySp = streamMode ? "•••" : (c.total_sp || 0).toLocaleString("tr-TR");
     const displayZone = streamMode ? "•••" : escapeHtml(c.zone || "-");
     const displayProfile = streamMode ? "•••" : escapeHtml(c.profile || "-");
     const displayGold = streamMode ? "•••" : (c.gold_today || 0).toLocaleString("tr-TR");
     const displayDeaths = streamMode ? "•••" : (c.deaths_today || 0);
     const displayDrops = streamMode ? "•••" : (c.drops_today || 0);
 
-    return `<tr>
+    return `<tr class="${checked ? "row-selected" : ""}">
       <td><input type="checkbox" class="char-checkbox" data-name="${escapeAttr(c.name)}" ${checked} onchange="toggleSelect('${escapeAttr(c.name)}', this.checked)"></td>
       <td>
         <div class="char-name">${displayName}</div>
@@ -724,10 +803,6 @@ function renderTable(chars) {
       <td>${displayDeaths}</td>
       <td>${displayDrops}</td>
       <td><span class="status-dot ${idleInfo.dot}"></span>${idleInfo.text}</td>
-      <td>
-        <button class="btn-action btn-start" onclick="quickCommand('!baslat ${escapeAttr(c.name)}')">Başlat</button>
-        <button class="btn-action btn-stop" onclick="quickCommand('!durdur ${escapeAttr(c.name)}')">Durdur</button>
-      </td>
     </tr>`;
   }).join("");
 
@@ -765,7 +840,8 @@ function escapeAttr(str) {
 function toggleSelect(name, checked) {
   if (checked) selectedChars.add(name);
   else selectedChars.delete(name);
-  updateBulkBar();
+  updateMixerCount();
+  refreshStatus();
 }
 
 function toggleSelectAll(checked) {
@@ -774,51 +850,48 @@ function toggleSelectAll(checked) {
     if (checked) selectedChars.add(cb.dataset.name);
     else selectedChars.delete(cb.dataset.name);
   });
-  updateBulkBar();
+  updateMixerCount();
+  refreshStatus();
 }
 
-function clearSelection() {
-  selectedChars.clear();
-  document.querySelectorAll(".char-checkbox").forEach(cb => cb.checked = false);
-  const selectAll = document.getElementById("select-all");
-  if (selectAll) selectAll.checked = false;
-  updateBulkBar();
+function updateMixerCount() {
+  document.getElementById("mixer-selected-count").textContent = selectedChars.size;
 }
 
-function updateBulkBar() {
-  const bar = document.getElementById("bulk-bar");
-  const count = document.getElementById("bulk-count");
-  if (selectedChars.size > 0) {
-    bar.style.display = "flex";
-    count.textContent = selectedChars.size + " karakter seçili";
-  } else {
-    bar.style.display = "none";
+function toggleMixerForm(id) {
+  document.querySelectorAll(".mixer-inline-form").forEach(f => {
+    if (f.id !== id) f.classList.remove("show");
+  });
+  document.getElementById(id).classList.toggle("show");
+}
+
+function mixerLog(line) {
+  const el = document.getElementById("mixer-result");
+  const div = document.createElement("div");
+  div.className = "m-line";
+  div.textContent = line;
+  el.prepend(div);
+  while (el.children.length > 8) el.removeChild(el.lastChild);
+}
+
+async function sendRawCommand(cmd) {
+  try {
+    const r = await fetch(API + "/api/commands", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ command: cmd })
+    });
+    const data = await r.json();
+    refreshHistory();
+    return data.command_id;
+  } catch (e) {
+    return null;
   }
 }
 
-async function bulkAction(action) {
-  const resultEl = document.getElementById("bulk-result");
-  const names = Array.from(selectedChars);
-  if (!names.length) return;
-  const cmdPrefix = action === "baslat" ? "!baslat" : "!durdur";
-  resultEl.innerHTML = "";
-  for (const name of names) {
-    const cmd = `${cmdPrefix} ${name}`;
-    try {
-      const r = await fetch(API + "/api/commands", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ command: cmd })
-      });
-      const data = await r.json();
-      pollBulkResult(data.command_id);
-    } catch (e) {}
-  }
-  refreshHistory();
-}
-
-async function pollBulkResult(cmdId) {
+function pollAndLog(cmdId, label) {
+  if (!cmdId) { mixerLog(`${label}: gönderilemedi`); return; }
   let attempts = 0;
   const poll = setInterval(async () => {
     attempts++;
@@ -828,10 +901,12 @@ async function pollBulkResult(cmdId) {
       const item = (hdata.commands || []).find(c => c.id === cmdId);
       if (item && item.status === "done") {
         clearInterval(poll);
-        refreshStatus();
+        mixerLog(`${label}: ${(item.result || "").split("\n")[0]}`);
         refreshHistory();
+        refreshStatus();
       } else if (attempts > 20) {
         clearInterval(poll);
+        mixerLog(`${label}: zaman aşımı`);
         refreshHistory();
       }
     } catch (e) {
@@ -840,9 +915,44 @@ async function pollBulkResult(cmdId) {
   }, 1500);
 }
 
-function quickCommand(cmd) {
-  document.getElementById("command-input").value = cmd;
-  sendCommand();
+async function mixerSimple(action) {
+  const names = Array.from(selectedChars);
+  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const name of names) {
+    const cmd = `!${action} ${name}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  }
+}
+
+async function mixerWithGroup(action, groupInputId) {
+  const group = document.getElementById(groupInputId).value.trim();
+  const names = Array.from(selectedChars);
+  if (!group) { mixerLog("Grup adı girin."); return; }
+  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const name of names) {
+    const cmd = `!${action} ${group} ${name}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  }
+}
+
+async function mixerReverse() {
+  const group = document.getElementById("rev-group").value.trim();
+  const target = document.getElementById("rev-target").value.trim();
+  const names = Array.from(selectedChars);
+  if (!group || !target) { mixerLog("Grup ve hedef nick girin."); return; }
+  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const name of names) {
+    const cmd = `!reverse ${group} ${name} ${target}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  }
+}
+
+async function quickReport(cmd) {
+  const id = await sendRawCommand(cmd);
+  pollAndLog(id, cmd);
 }
 
 async function sendCommand() {
@@ -852,42 +962,26 @@ async function sendCommand() {
   const btn = document.getElementById("send-btn");
   btn.disabled = true;
 
-  try {
-    const r = await fetch(API + "/api/commands", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ command: cmd })
-    });
-    const data = await r.json();
-    if (!data.ok) {
-      btn.disabled = false;
-      return;
-    }
-    const cmdId = data.command_id;
-    input.value = "";
-    refreshHistory();
+  const id = await sendRawCommand(cmd);
+  input.value = "";
 
-    let attempts = 0;
-    const poll = setInterval(async () => {
-      attempts++;
-      const hr = await fetch(API + "/api/commands/history", { credentials: "include" });
-      const hdata = await hr.json();
-      const item = (hdata.commands || []).find(c => c.id === cmdId);
-      if (item && item.status === "done") {
-        clearInterval(poll);
-        btn.disabled = false;
-        refreshHistory();
-        refreshStatus();
-      } else if (attempts > 20) {
-        clearInterval(poll);
-        btn.disabled = false;
-        refreshHistory();
-      }
-    }, 1500);
-  } catch (e) {
-    btn.disabled = false;
-  }
+  let attempts = 0;
+  const poll = setInterval(async () => {
+    attempts++;
+    const hr = await fetch(API + "/api/commands/history", { credentials: "include" });
+    const hdata = await hr.json();
+    const item = (hdata.commands || []).find(c => c.id === id);
+    if (item && item.status === "done") {
+      clearInterval(poll);
+      btn.disabled = false;
+      refreshHistory();
+      refreshStatus();
+    } else if (attempts > 20) {
+      clearInterval(poll);
+      btn.disabled = false;
+      refreshHistory();
+    }
+  }, 1500);
 }
 
 async function refreshHistory() {
