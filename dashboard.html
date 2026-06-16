@@ -310,6 +310,54 @@
   .table-toggle-row button:hover { border-color: var(--accent); }
   #table-wrapper.hidden { display: none; }
 
+  .radar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .radar-header h3 { margin: 0; font-size: 14px; }
+  .server-switch {
+    display: flex;
+    gap: 6px;
+  }
+  .server-switch button {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #1c1c28;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .server-switch button.active {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(0,224,255,0.08);
+  }
+  .unique-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .unique-card {
+    background: #1c1c28;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .unique-card .u-name { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+  .unique-card .u-row { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+  .unique-card .u-row b { color: var(--text); }
+  .unique-card .u-window {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--accent2);
+    font-weight: 600;
+  }
+
   .bulk-bar {
     display: none;
     align-items: center;
@@ -424,6 +472,19 @@
     </div>
 
     <div class="command-panel">
+      <div class="radar-header">
+        <h3>🎯 Unique Radar</h3>
+        <div class="server-switch">
+          <button id="radar-knidos" class="active" onclick="switchRadarServer('knidos')">Knidos</button>
+          <button id="radar-lidya" onclick="switchRadarServer('lidya')">Lidya</button>
+        </div>
+      </div>
+      <div class="unique-grid" id="unique-grid">
+        <div style="color:var(--text-dim); font-size:12px;">Yükleniyor...</div>
+      </div>
+    </div>
+
+    <div class="command-panel">
       <h3>Son Komutlar</h3>
       <div id="history-list">
         <div style="color:var(--text-dim); font-size:12px;">Henüz komut yok.</div>
@@ -531,7 +592,43 @@ async function login() {
     });
     const data = await r.json();
     if (data.ok) {
-      checkAuth();
+      let radarServer = "knidos";
+
+function switchRadarServer(server) {
+  radarServer = server;
+  document.getElementById("radar-knidos").classList.toggle("active", server === "knidos");
+  document.getElementById("radar-lidya").classList.toggle("active", server === "lidya");
+  loadUniqueRadar();
+}
+
+async function loadUniqueRadar() {
+  const grid = document.getElementById("unique-grid");
+  try {
+    const r = await fetch(API + "/api/uniques?server=" + radarServer);
+    const data = await r.json();
+    if (!data.data || !data.data.length) {
+      grid.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Veri yok.</div>';
+      return;
+    }
+    const sorted = [...data.data].sort((a, b) => new Date(a.nextSpawn) - new Date(b.nextSpawn));
+    grid.innerHTML = sorted.map(u => {
+      const topZone = (u.locationStats && u.locationStats[0]) ? u.locationStats[0].zone : "-";
+      const topPct = (u.locationStats && u.locationStats[0]) ? u.locationStats[0].pct : null;
+      return `<div class="unique-card">
+        <div class="u-name">${escapeHtml(u.name)}</div>
+        <div class="u-row">Son öldürme: <b>${escapeHtml(u.lastKill || "-")}</b></div>
+        <div class="u-row">Olası bölge: <b>${escapeHtml(topZone)}${topPct ? " (%" + topPct + ")" : ""}</b></div>
+        <div class="u-window">⏱ ${escapeHtml(u.earlySpawn || "?")} – ${escapeHtml(u.lateSpawn || "?")}</div>
+      </div>`;
+    }).join("");
+  } catch (e) {
+    grid.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Yüklenemedi.</div>';
+  }
+}
+
+checkAuth();
+loadUniqueRadar();
+setInterval(loadUniqueRadar, 60000);
     } else {
       errEl.textContent = data.error || "Giriş başarısız.";
     }
