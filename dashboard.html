@@ -293,6 +293,22 @@
   .login-footer .links { margin-top: 4px; }
 
   .updated-at { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+  .table-toggle-row {
+    display: none;
+    margin-bottom: 12px;
+  }
+  .table-toggle-row.show { display: block; }
+  .table-toggle-row button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .table-toggle-row button:hover { border-color: var(--accent); }
+  #table-wrapper.hidden { display: none; }
 
   .bulk-bar {
     display: none;
@@ -366,6 +382,11 @@
     </div>
     <div id="bulk-result"></div>
 
+    <div class="table-toggle-row" id="table-toggle-row">
+      <button onclick="toggleTable()" id="table-toggle-btn">🙈 Karakter Listesini Gizle</button>
+    </div>
+
+    <div id="table-wrapper">
     <table>
       <thead>
         <tr>
@@ -386,6 +407,7 @@
         <tr><td colspan="11" style="text-align:center; color:var(--text-dim); padding:24px;">Yükleniyor...</td></tr>
       </tbody>
     </table>
+    </div>
     <div class="updated-at" id="updated-at"></div>
 
     <div class="command-panel">
@@ -428,16 +450,32 @@ function toggleStreamMode() {
   streamMode = !streamMode;
   const btn = document.getElementById("stream-toggle");
   const body = document.body;
+  const toggleRow = document.getElementById("table-toggle-row");
   if (streamMode) {
     btn.classList.add("active");
     btn.textContent = "🔓 Yayın Modu (Açık)";
     body.classList.add("stream-mode");
+    toggleRow.classList.add("show");
   } else {
     btn.classList.remove("active");
     btn.textContent = "🔒 Yayın Modu";
     body.classList.remove("stream-mode");
+    toggleRow.classList.remove("show");
+    document.getElementById("table-wrapper").classList.remove("hidden");
+    document.getElementById("table-toggle-btn").textContent = "🙈 Karakter Listesini Gizle";
   }
   refreshStatus();
+}
+
+function toggleTable() {
+  const wrapper = document.getElementById("table-wrapper");
+  const btn = document.getElementById("table-toggle-btn");
+  wrapper.classList.toggle("hidden");
+  if (wrapper.classList.contains("hidden")) {
+    btn.textContent = "👁️ Karakter Listesini Göster";
+  } else {
+    btn.textContent = "🙈 Karakter Listesini Gizle";
+  }
 }
 
 function mask(val) {
