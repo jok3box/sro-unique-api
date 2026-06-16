@@ -173,6 +173,10 @@
     .main-grid { grid-template-columns: 1fr; }
   }
 
+  #table-wrapper {
+    overflow-x: auto;
+    max-width: 100%;
+  }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -181,6 +185,7 @@
     border-radius: 10px;
     overflow: hidden;
     font-size: 13px;
+    min-width: 700px;
   }
   thead th {
     text-align: left;
@@ -346,6 +351,21 @@
     font-size: 12px;
     color: var(--accent2);
     font-weight: 600;
+  }
+  .unique-card.priority {
+    border-color: var(--green);
+    box-shadow: 0 0 14px rgba(61,220,132,0.35);
+  }
+  .unique-card .priority-badge {
+    display: inline-block;
+    background: var(--green);
+    color: #08120c;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
   }
 
   .bulk-bar {
@@ -554,10 +574,12 @@ async function loadUniqueRadar() {
       return;
     }
     const sorted = [...data.data].sort((a, b) => new Date(a.nextSpawn) - new Date(b.nextSpawn));
-    grid.innerHTML = sorted.map(u => {
+    grid.innerHTML = sorted.map((u, idx) => {
       const topZone = (u.locationStats && u.locationStats[0]) ? u.locationStats[0].zone : "-";
       const topPct = (u.locationStats && u.locationStats[0]) ? u.locationStats[0].pct : null;
-      return `<div class="unique-card">
+      const isPriority = idx === 0;
+      return `<div class="unique-card${isPriority ? " priority" : ""}">
+        ${isPriority ? '<div class="priority-badge">⏳ ÖNCELİK</div>' : ""}
         <div class="u-name">${escapeHtml(u.name)}</div>
         <div class="u-row">Son öldürme: <b>${escapeHtml(u.lastKill || "-")}</b></div>
         <div class="u-row">Olası bölge: <b>${escapeHtml(topZone)}${topPct ? " (%" + topPct + ")" : ""}</b></div>
