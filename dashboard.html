@@ -149,6 +149,8 @@
     background: rgba(255,46,196,0.1);
   }
   .stream-mode .maskable { color: transparent; text-shadow: 0 0 8px rgba(255,255,255,0.6); user-select: none; }
+  .stream-mode #table-wrapper { display: none; }
+  .stream-mode #history-panel { display: none; }
 
   .container { padding: 20px; max-width: 1500px; margin: 0 auto; }
 
@@ -623,7 +625,7 @@
         </div>
       </div>
 
-      <div class="panel" style="margin-bottom:0;">
+      <div class="panel" id="history-panel" style="margin-bottom:0;">
         <h3>Son Komutlar</h3>
         <div id="history-list">
           <div style="color:var(--text-dim); font-size:12px;">Henüz komut yok.</div>
