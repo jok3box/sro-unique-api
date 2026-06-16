@@ -20,7 +20,17 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
-CORS(app)
+
+# CORS'u sadece bilinen, guvenilir origin'lerle sinirliyoruz. Parametresiz
+# CORS(app) TUM siteler icin acik kapi anlamina gelir (CSRF riski), bu
+# yuzden acikca izin verilen adresleri listeliyoruz. Yeni bir domain
+# eklenince (orn. www.jok3box.com canliya alindiginda) buraya eklenmeli.
+ALLOWED_ORIGINS = [
+    "https://sro-unique-api-production.up.railway.app",
+    "https://jok3box.com",
+    "https://www.jok3box.com",
+]
+CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
 # Brute-force/asiri istek korumasi. Bellek-ici depolama kullaniyoruz (tek
 # Railway instance'i icin yeterli); olcek buyurse Redis'e gecilebilir.
@@ -217,6 +227,17 @@ def post_status():
     if not customer:
         return jsonify({"ok": False, "error": "Unauthorized"}), 401
     data = request.get_json(force=True)
+
+    # Lisans kisitlamasi: musteri kendi character_limit'inin uzerinde
+    # karakter bildiremez. Bu, character_limit alaninin sadece veritabaninda
+    # durmasini degil, gercekten uygulanan bir is kurali olmasini saglar.
+    characters = data.get("characters")
+    if isinstance(characters, list) and len(characters) > customer["character_limit"]:
+        return jsonify({
+            "ok": False,
+            "error": f"Karakter limiti asildi: {len(characters)} karakter gonderildi, limit {customer['character_limit']}."
+        }), 403
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
@@ -300,6 +321,81 @@ def _check_admin_auth():
     ADMIN_SECRET ortam degiskeni tanimli olmali ve dogru Bearer token gelmeli."""
     auth = request.headers.get("Authorization", "")
     return bool(ADMIN_SECRET) and auth == f"Bearer {ADMIN_SECRET}"
+
+
+@app.route("/api/admin/update_customer", methods=["POST"])
+@limiter.limit("20 per minute")
+def update_customer():
+    """Musterinin sifresini degistirir ve/veya aktif/pasif durumunu gunceller.
+    Guvenlik: herhangi bir degisiklik sonrasi musterinin TUM mevcut session'lari
+    iptal edilir - bu sayede sifre degisikliginde veya hesap askiya alindiginda
+    eski/calinmis token'lar artik gecersiz olur."""
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    data = request.get_json(force=True)
+    customer_id = data.get("customer_id")
+    new_password = data.get("password")
+    new_active = data.get("active")
+    new_days = data.get("extend_days")
+
+    if not customer_id:
+        return jsonify({"ok": False, "error": "customer_id gerekli"}), 400
+    if new_password is None and new_active is None and new_days is None:
+        return jsonify({"ok": False, "error": "password, active veya extend_days alanlarindan en az biri gerekli"}), 400
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+
+        if new_password is not None:
+            cur.execute(
+                "UPDATE customers SET password_hash=%s WHERE id=%s",
+                (generate_password_hash(new_password), customer_id)
+            )
+        if new_active is not None:
+            cur.execute(
+                "UPDATE customers SET active=%s WHERE id=%s",
+                (bool(new_active), customer_id)
+            )
+        if new_days is not None:
+            cur.execute(
+                "UPDATE customers SET expires_at = expires_at + (%s || ' days')::interval WHERE id=%s",
+                (new_days, customer_id)
+            )
+
+        # Guvenlik: sifre veya aktiflik durumu degistiyse tum eski session'lari
+        # gecersiz kil - calinmis bir token'in artik ise yaramamasini saglar.
+        if new_password is not None or new_active is not None:
+            cur.execute("DELETE FROM sessions WHERE customer_id=%s", (customer_id,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "message": "Musteri guncellendi, eski oturumlar iptal edildi."})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/admin/list_customers")
+def list_customers():
+    """Tum musterilerin temel bilgilerini (sifre haric) listeler - admin only."""
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id, username, character_limit, expires_at, active FROM customers ORDER BY id")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "customers": [
+            {"id": r[0], "username": r[1], "character_limit": r[2],
+             "expires_at": r[3].isoformat(), "active": r[4]}
+            for r in rows
+        ]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route("/api/db/init")
