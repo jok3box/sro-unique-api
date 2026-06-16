@@ -537,8 +537,7 @@
           <div class="mixer-group-label">Return Scroll</div>
           <button class="mixer-btn" onclick="toggleMixerForm('rs-form')">↩️ Return Scroll...</button>
           <div class="mixer-inline-form" id="rs-form">
-            <input id="rs-group" placeholder="Sunucu (örn: Lidya)">
-            <button class="apply-btn" onclick="mixerWithGroup('returnscroll', 'rs-group')">Uygula</button>
+            <button class="apply-btn" onclick="mixerWithGroup('returnscroll')">Uygula</button>
           </div>
         </div>
 
@@ -546,7 +545,6 @@
           <div class="mixer-group-label">Reverse Return</div>
           <button class="mixer-btn" onclick="toggleMixerForm('rev-form')">🔄 Reverse Return...</button>
           <div class="mixer-inline-form" id="rev-form">
-            <input id="rev-group" placeholder="Sunucu (örn: Lidya)">
             <input id="rev-target" placeholder="Hedef nick">
             <button class="apply-btn" onclick="mixerReverse()">Uygula</button>
           </div>
@@ -563,13 +561,11 @@
           <div class="mixer-group-label">Koordinat / Radius</div>
           <button class="mixer-btn" onclick="toggleMixerForm('coord-form')">📍 Koordinat Değiştir...</button>
           <div class="mixer-inline-form" id="coord-form">
-            <input id="coord-server" placeholder="Sunucu (örn: Lidya)">
             <input id="coord-value" placeholder="X,Y (örn: 1500,2300)">
             <button class="apply-btn" onclick="mixerCoord()">Uygula</button>
           </div>
           <button class="mixer-btn" onclick="toggleMixerForm('radius-form')">⭕ Radius Değiştir...</button>
           <div class="mixer-inline-form" id="radius-form">
-            <input id="radius-server" placeholder="Sunucu (örn: Lidya)">
             <input id="radius-value" placeholder="Değer (örn: 50)">
             <button class="apply-btn" onclick="mixerRadius()">Uygula</button>
           </div>
@@ -579,7 +575,6 @@
           <div class="mixer-group-label">Tehlikeli</div>
           <button class="mixer-btn stop" onclick="toggleMixerForm('terminate-form')">⛔ Client Kapat (Terminate)...</button>
           <div class="mixer-inline-form" id="terminate-form">
-            <input id="terminate-server" placeholder="Sunucu (örn: Lidya)">
             <button class="apply-btn" onclick="mixerTerminate()">Uygula</button>
           </div>
         </div>
@@ -829,7 +824,8 @@ function renderTable(chars) {
     else if (idleInfo.dot === "dot-yellow") idle++;
     else stuck++;
 
-    const checked = selectedChars.has(c.name) ? "checked" : "";
+    const selKey = c.server + "::" + c.name;
+    const checked = selectedChars.has(selKey) ? "checked" : "";
     const displayName = streamMode ? ("Char " + (idx + 1)) : escapeHtml(c.name);
     const displayServer = streamMode ? "•••" : escapeHtml(c.server);
     const displayLevel = streamMode ? "•••" : c.level;
@@ -841,7 +837,7 @@ function renderTable(chars) {
     const displayDrops = streamMode ? "•••" : (c.drops_today || 0);
 
     return `<tr class="${checked ? "row-selected" : ""}">
-      <td><input type="checkbox" class="char-checkbox" data-name="${escapeAttr(c.name)}" ${checked} onchange="toggleSelect('${escapeAttr(c.name)}', this.checked)"></td>
+      <td><input type="checkbox" class="char-checkbox" data-name="${escapeAttr(c.name)}" data-server="${escapeAttr(c.server)}" ${checked} onchange="toggleSelect('${escapeAttr(selKey)}', this.checked)"></td>
       <td>
         <div class="char-name">${displayName}</div>
         <div class="char-server">${displayServer}</div>
@@ -898,8 +894,9 @@ function toggleSelect(name, checked) {
 function toggleSelectAll(checked) {
   document.querySelectorAll(".char-checkbox").forEach(cb => {
     cb.checked = checked;
-    if (checked) selectedChars.add(cb.dataset.name);
-    else selectedChars.delete(cb.dataset.name);
+    const key = cb.dataset.server + "::" + cb.dataset.name;
+    if (checked) selectedChars.add(key);
+    else selectedChars.delete(key);
   });
   updateMixerCount();
   refreshStatus();
@@ -966,36 +963,44 @@ function pollAndLog(cmdId, label) {
   }, 1500);
 }
 
+// selectedChars artik "server::name" formatinda key tutuyor. Bu sayede
+// her komut, kullanicinin manuel yazdigi bir sunucu yerine secili karakterin
+// GERCEK sunucusunu kullanir - farkli sunucudaki ayni isimli karakterlerin
+// (orn. Knidos/JOK3BOX vs Lidya/JOK3BOX) karismasini tamamen onler.
+function parseSelectedChars() {
+  return Array.from(selectedChars).map(key => {
+    const idx = key.indexOf("::");
+    return { server: key.slice(0, idx), name: key.slice(idx + 2) };
+  });
+}
+
 async function mixerSimple(action) {
-  const names = Array.from(selectedChars);
-  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
-  for (const name of names) {
-    const cmd = `!${action} ${name}`;
+  const items = parseSelectedChars();
+  if (!items.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const { server, name } of items) {
+    const cmd = `!${action} ${server} ${name}`;
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
   }
 }
 
-async function mixerWithGroup(action, groupInputId) {
-  const group = document.getElementById(groupInputId).value.trim();
-  const names = Array.from(selectedChars);
-  if (!group) { mixerLog("Grup adı girin."); return; }
-  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
-  for (const name of names) {
-    const cmd = `!${action} ${group} ${name}`;
+async function mixerWithGroup(action) {
+  const items = parseSelectedChars();
+  if (!items.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const { server, name } of items) {
+    const cmd = `!${action} ${server} ${name}`;
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
   }
 }
 
 async function mixerReverse() {
-  const group = document.getElementById("rev-group").value.trim();
   const target = document.getElementById("rev-target").value.trim();
-  const names = Array.from(selectedChars);
-  if (!group || !target) { mixerLog("Grup ve hedef nick girin."); return; }
-  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
-  for (const name of names) {
-    const cmd = `!reverse ${group} ${name} ${target}`;
+  const items = parseSelectedChars();
+  if (!target) { mixerLog("Hedef nick girin."); return; }
+  if (!items.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const { server, name } of items) {
+    const cmd = `!reverse ${server} ${name} ${target}`;
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
   }
@@ -1021,12 +1026,11 @@ async function mixerGroupStop() {
 }
 
 async function mixerCoord() {
-  const server = document.getElementById("coord-server").value.trim();
   const value = document.getElementById("coord-value").value.trim();
-  const names = Array.from(selectedChars);
-  if (!server || !value) { mixerLog("Sunucu ve X,Y girin."); return; }
-  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
-  for (const name of names) {
+  const items = parseSelectedChars();
+  if (!value) { mixerLog("X,Y değeri girin."); return; }
+  if (!items.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const { server, name } of items) {
     const cmd = `!koordinat ${server} ${name} ${value}`;
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
@@ -1034,12 +1038,11 @@ async function mixerCoord() {
 }
 
 async function mixerRadius() {
-  const server = document.getElementById("radius-server").value.trim();
   const value = document.getElementById("radius-value").value.trim();
-  const names = Array.from(selectedChars);
-  if (!server || !value) { mixerLog("Sunucu ve değer girin."); return; }
-  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
-  for (const name of names) {
+  const items = parseSelectedChars();
+  if (!value) { mixerLog("Değer girin."); return; }
+  if (!items.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const { server, name } of items) {
     const cmd = `!radius ${server} ${name} ${value}`;
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
@@ -1047,11 +1050,9 @@ async function mixerRadius() {
 }
 
 async function mixerTerminate() {
-  const server = document.getElementById("terminate-server").value.trim();
-  const names = Array.from(selectedChars);
-  if (!server) { mixerLog("Sunucu girin."); return; }
-  if (!names.length) { mixerLog("Önce karakter seçin."); return; }
-  for (const name of names) {
+  const items = parseSelectedChars();
+  if (!items.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const { server, name } of items) {
     const cmd = `!terminate ${server} ${name}`;
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
