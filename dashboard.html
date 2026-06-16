@@ -25,23 +25,40 @@
     color: var(--text);
     min-height: 100vh;
   }
-  .login-banner {
-    aspect-ratio: 1920 / 480;
-    object-fit: contain;
-    background: #000;
+  .login-banner-wrap {
+    height: 160px;
+    background: linear-gradient(90deg, #000 0%, #0a0612 50%, #000 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
     border-radius: 12px 12px 0 0;
-    display: block;
     margin: -40px -40px 20px -40px;
     width: calc(100% + 80px);
   }
-  .header-banner {
-    width: 100%;
-    height: 110px;
+  .login-banner {
+    height: 100%;
+    width: auto;
+    max-width: 100%;
     object-fit: contain;
-    object-position: center;
-    background: #000;
     display: block;
+  }
+  .header-banner-wrap {
+    width: 100%;
+    height: 130px;
+    background: linear-gradient(90deg, #000 0%, #0a0612 50%, #000 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
     border-bottom: 1px solid var(--border);
+  }
+  .header-banner {
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    display: block;
   }
   .center-screen {
     display: flex;
@@ -445,7 +462,7 @@
 
 <div id="login-screen" class="center-screen">
   <div class="login-box">
-    <img class="login-banner" src="/assets/kapak.png" alt="JOK3BOX">
+    <div class="login-banner-wrap"><img class="login-banner" src="/assets/logo.png" alt="JOK3BOX"></div>
     <h1>phBot Monitor</h1>
     <p>Dashboard'a giriş yapın</p>
     <input id="username" placeholder="Kullanıcı adı" autocomplete="username">
@@ -464,7 +481,7 @@
 </div>
 
 <div id="dashboard-screen" style="display:none">
-  <img class="header-banner" src="/assets/kapak.png" alt="JOK3BOX">
+  <div class="header-banner-wrap"><img class="header-banner" src="/assets/logo.png" alt="JOK3BOX"></div>
   <header>
     <div>
       <h1>phBot Monitor Dashboard</h1>
