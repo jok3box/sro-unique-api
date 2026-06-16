@@ -163,6 +163,11 @@
     grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
     gap: 20px;
     align-items: start;
+    width: 100%;
+  }
+  .main-grid > div {
+    min-width: 0;
+    width: 100%;
   }
   @media (max-width: 980px) {
     .main-grid { grid-template-columns: 1fr; }
@@ -257,7 +262,7 @@
   .history-time { color: var(--text-dim); font-size: 11px; }
   .history-result { white-space: pre-wrap; margin-top: 4px; color: var(--text); font-family: monospace; }
   .history-pending { color: var(--yellow); }
-  #history-list { max-height: 480px; overflow-y: auto; }
+  #history-list { max-height: 480px; overflow-y: auto; overflow-x: hidden; word-break: break-word; }
 
   .footer-brand {
     text-align: center;
@@ -413,6 +418,8 @@
         <div class="server-switch">
           <button id="radar-knidos" class="active" onclick="switchRadarServer('knidos')">Knidos</button>
           <button id="radar-lidya" onclick="switchRadarServer('lidya')">Lidya</button>
+          <button id="radar-nemrut" onclick="switchRadarServer('nemrut')">Nemrut</button>
+          <button id="radar-karya" onclick="switchRadarServer('karya')">Karya</button>
         </div>
       </div>
       <div class="unique-grid" id="unique-grid">
@@ -531,8 +538,9 @@ function toggleTable() {
 
 function switchRadarServer(server) {
   radarServer = server;
-  document.getElementById("radar-knidos").classList.toggle("active", server === "knidos");
-  document.getElementById("radar-lidya").classList.toggle("active", server === "lidya");
+  ["knidos", "lidya", "nemrut", "karya"].forEach(s => {
+    document.getElementById("radar-" + s).classList.toggle("active", server === s);
+  });
   loadUniqueRadar();
 }
 
