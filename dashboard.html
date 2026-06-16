@@ -553,6 +553,13 @@
         </div>
 
         <div class="mixer-group">
+          <div class="mixer-group-label">Grup Kontrolü</div>
+          <input id="group-select-input" placeholder="Grup (örn: MAIN, Tier2, Tier3)">
+          <button class="mixer-btn" onclick="mixerGroupStart()">▶️ Grubu Başlat</button>
+          <button class="mixer-btn stop" onclick="mixerGroupStop()">⏹️ Grubu Durdur</button>
+        </div>
+
+        <div class="mixer-group">
           <div class="mixer-group-label">Koordinat / Radius</div>
           <button class="mixer-btn" onclick="toggleMixerForm('coord-form')">📍 Koordinat Değiştir...</button>
           <div class="mixer-inline-form" id="coord-form">
@@ -992,6 +999,25 @@ async function mixerReverse() {
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
   }
+}
+
+async function mixerGroupStart() {
+  const group = document.getElementById("group-select-input").value.trim();
+  if (!group) { mixerLog("Grup adı girin."); return; }
+  const cmd = `!grupbaslat ${group}`;
+  const id = await sendRawCommand(cmd);
+  pollAndLog(id, cmd);
+}
+
+async function mixerGroupStop() {
+  const group = document.getElementById("group-select-input").value.trim();
+  if (!group) { mixerLog("Grup adı girin."); return; }
+  if (!confirm(`'${group}' grubundaki TÜM karakterlerin botunu durdurmak istediğinizden emin misiniz?\n\nBu işlem geri alınamaz, karakterler botsuz kalır.`)) {
+    return;
+  }
+  const cmd = `!grupdurdur ${group}`;
+  const id = await sendRawCommand(cmd);
+  pollAndLog(id, cmd);
 }
 
 async function mixerCoord() {
