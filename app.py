@@ -391,9 +391,17 @@ def fetch_gamegami(server_id: int) -> list:
     except Exception as e:
         return []
 
+# Oyunun zamanlanmis etkinlik unique'leri - rastgele spawn etmedikleri icin
+# Unique Radar tahmin listesine dahil edilmiyorlar.
+EVENT_UNIQUES = {
+    "beakyung the white viper",
+}
+
 def analyze(records: list) -> list:
     by_unique = defaultdict(list)
     for r in records:
+        if r["name"].strip().lower() in EVENT_UNIQUES:
+            continue
         by_unique[r["name"]].append(r)
 
     result = []
