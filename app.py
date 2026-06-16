@@ -238,8 +238,7 @@ def get_status():
 
 @app.route("/api/admin/create_customer", methods=["POST"])
 def create_customer():
-    auth = request.headers.get("Authorization", "")
-    if not ADMIN_SECRET or auth != f"Bearer {ADMIN_SECRET}":
+    if not _check_admin_auth():
         return jsonify({"ok": False, "error": "Unauthorized"}), 401
 
     data = request.get_json(force=True)
@@ -283,8 +282,17 @@ def create_customer():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+def _check_admin_auth():
+    """Admin-only uclar icin ortak yetkilendirme kontrolu.
+    ADMIN_SECRET ortam degiskeni tanimli olmali ve dogru Bearer token gelmeli."""
+    auth = request.headers.get("Authorization", "")
+    return bool(ADMIN_SECRET) and auth == f"Bearer {ADMIN_SECRET}"
+
+
 @app.route("/api/db/init")
 def db_init():
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -337,11 +345,15 @@ def db_init():
 
 @app.route("/api/db/debug")
 def db_debug():
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
     keys = [k for k in os.environ.keys() if any(s in k.upper() for s in ["DATABASE", "POSTGRES", "PG"])]
     return jsonify({"matching_keys": keys, "DATABASE_URL_set": DATABASE_URL is not None})
 
 @app.route("/api/db/test")
 def db_test():
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
     try:
         conn = get_db()
         cur = conn.cursor()
