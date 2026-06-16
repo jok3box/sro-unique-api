@@ -46,6 +46,7 @@
   .header-banner-wrap {
     width: 100%;
     height: 130px;
+    margin: 0;
     background: linear-gradient(90deg, #000 0%, #0a0612 50%, #000 100%);
     display: flex;
     align-items: center;
@@ -480,7 +481,7 @@
   </div>
 </div>
 
-<div id="dashboard-screen" style="display:none">
+<div id="dashboard-screen" style="display:none; margin:0; padding:0;">
   <div class="header-banner-wrap"><img class="header-banner" src="/assets/logo.png" alt="JOK3BOX"></div>
   <header>
     <div>
@@ -535,7 +536,7 @@
           <div class="mixer-group-label">Return Scroll</div>
           <button class="mixer-btn" onclick="toggleMixerForm('rs-form')">↩️ Return Scroll...</button>
           <div class="mixer-inline-form" id="rs-form">
-            <input id="rs-group" placeholder="Grup (örn: MAIN)">
+            <input id="rs-group" placeholder="Sunucu (örn: Lidya)">
             <button class="apply-btn" onclick="mixerWithGroup('returnscroll', 'rs-group')">Uygula</button>
           </div>
         </div>
@@ -544,7 +545,7 @@
           <div class="mixer-group-label">Reverse Return</div>
           <button class="mixer-btn" onclick="toggleMixerForm('rev-form')">🔄 Reverse Return...</button>
           <div class="mixer-inline-form" id="rev-form">
-            <input id="rev-group" placeholder="Grup (örn: MAIN)">
+            <input id="rev-group" placeholder="Sunucu (örn: Lidya)">
             <input id="rev-target" placeholder="Hedef nick">
             <button class="apply-btn" onclick="mixerReverse()">Uygula</button>
           </div>
@@ -589,7 +590,7 @@
           <h3>Serbest Komut</h3>
           <div class="hint">
             Mixer'daki butonlar yetmediğinde doğrudan komut yazabilirsiniz. Örnekler:
-            <b>!durdur AKK47</b> · <b>!baslat hepsi</b> · <b>!reverse MAIN Lidya SANCAKTEPE</b>
+            <b>!durdur AKK47</b> · <b>!baslat hepsi</b> · <b>!reverse Lidya JOK3BOX SANCAKTEPE</b>
           </div>
           <div class="command-row">
             <input id="command-input" placeholder="!komut ..." onkeydown="if(event.key==='Enter') sendCommand()">
