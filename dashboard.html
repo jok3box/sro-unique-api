@@ -569,6 +569,11 @@
             <input id="radius-value" placeholder="Değer (örn: 50)">
             <button class="apply-btn" onclick="mixerRadius()">Uygula</button>
           </div>
+          <button class="mixer-btn" onclick="toggleMixerForm('profile-form')">🧩 Profil Değiştir...</button>
+          <div class="mixer-inline-form" id="profile-form">
+            <input id="profile-value" placeholder="Profil adı">
+            <button class="apply-btn" onclick="mixerProfile()">Uygula</button>
+          </div>
         </div>
 
         <div class="mixer-group">
@@ -1044,6 +1049,18 @@ async function mixerRadius() {
   if (!items.length) { mixerLog("Önce karakter seçin."); return; }
   for (const { server, name } of items) {
     const cmd = `!radius ${server} ${name} ${value}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  }
+}
+
+async function mixerProfile() {
+  const value = document.getElementById("profile-value").value.trim();
+  const items = parseSelectedChars();
+  if (!value) { mixerLog("Profil adı girin."); return; }
+  if (!items.length) { mixerLog("Önce karakter seçin."); return; }
+  for (const { server, name } of items) {
+    const cmd = `!profil ${server} ${name} ${value}`;
     const id = await sendRawCommand(cmd);
     pollAndLog(id, cmd);
   }
