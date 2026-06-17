@@ -55,8 +55,38 @@ DISCORD_CUSTOMER_CATEGORY_ID = os.environ.get("DISCORD_CUSTOMER_CATEGORY_ID")
 DISCORD_API_BASE = "https://discord.com/api/v10"
 _PERM_VIEW_CHANNEL = 1 << 10
 _PERM_SEND_MESSAGES = 1 << 11
+_PERM_MANAGE_CHANNELS = 1 << 4
 _PERM_READ_MESSAGE_HISTORY = 1 << 16
 _CUSTOMER_ALLOW_PERMS = str(_PERM_VIEW_CHANNEL | _PERM_SEND_MESSAGES | _PERM_READ_MESSAGE_HISTORY)
+_BOT_ALLOW_PERMS = str(_PERM_VIEW_CHANNEL | _PERM_MANAGE_CHANNELS | _PERM_SEND_MESSAGES | _PERM_READ_MESSAGE_HISTORY)
+
+_bot_user_id_cache = None
+
+
+def _get_bot_user_id():
+    """Bot'un kendi Discord kullanici ID'sini doner (bir kez cekip onbellege
+    alir). Musteriye ozel kanallar olusturulurken bot'a da acikca View+Manage
+    Channels izni vermek icin gerekli - aksi halde @everyone'a deny verilen
+    kanallarda bot kendi olusturdugu kanali bile goremez/yonetemez (403
+    Missing Access)."""
+    global _bot_user_id_cache
+    if _bot_user_id_cache:
+        return _bot_user_id_cache
+    if not DISCORD_BOT_TOKEN:
+        return None
+    try:
+        resp = requests.get(
+            f"{DISCORD_API_BASE}/users/@me",
+            headers={"Authorization": f"Bot {DISCORD_BOT_TOKEN}"},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            _bot_user_id_cache = str(resp.json()["id"])
+            return _bot_user_id_cache
+        print(f"Bot kullanici ID cekme hatasi: {resp.status_code} {resp.text}")
+    except Exception as e:
+        print(f"Bot kullanici ID cekme istisnasi: {e}")
+    return None
 
 
 def _sanitize_discord_channel_name(username: str) -> str:
@@ -81,13 +111,17 @@ def discord_create_customer_channel(username: str, discord_user_id: str):
         return None
 
     channel_name = _sanitize_discord_channel_name(username)
+    overwrites = [
+        {"id": DISCORD_GUILD_ID, "type": 0, "deny": str(_PERM_VIEW_CHANNEL)},
+        {"id": str(discord_user_id), "type": 1, "allow": _CUSTOMER_ALLOW_PERMS},
+    ]
+    bot_user_id = _get_bot_user_id()
+    if bot_user_id:
+        overwrites.append({"id": bot_user_id, "type": 1, "allow": _BOT_ALLOW_PERMS})
     payload = {
         "name": channel_name,
         "type": 0,
-        "permission_overwrites": [
-            {"id": DISCORD_GUILD_ID, "type": 0, "deny": str(_PERM_VIEW_CHANNEL)},
-            {"id": str(discord_user_id), "type": 1, "allow": _CUSTOMER_ALLOW_PERMS},
-        ],
+        "permission_overwrites": overwrites,
     }
     if DISCORD_CUSTOMER_CATEGORY_ID:
         payload["parent_id"] = DISCORD_CUSTOMER_CATEGORY_ID
