@@ -318,6 +318,17 @@
   letter-spacing: 0.5px;
   padding: 6px 12px;
 }
+.group-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.group-toggle-btn {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.group-header-content:hover .group-toggle-btn { opacity: 1; }
 
   .status-dot {
     display: inline-block;
@@ -665,6 +676,8 @@ const API = "";
 let selectedChars = new Set();
 let streamMode = false;
 let radarServer = "knidos";
+let collapsedGroups = new Set();
+let lastCharsData = [];
 
 function toggleStreamMode() {
   streamMode = !streamMode;
@@ -810,12 +823,22 @@ async function refreshStatus() {
     if (!r.ok) { if (r.status === 401) showLogin(); return; }
     const data = await r.json();
     if (!data.ok || !data.data) return;
-    renderTable(data.data.characters || []);
+    lastCharsData = data.data.characters || [];
+    renderTable(lastCharsData);
     if (data.updated_at) {
       document.getElementById("updated-at").textContent =
         "Son güncelleme: " + new Date(data.updated_at).toLocaleTimeString("tr-TR");
     }
   } catch (e) {}
+}
+
+function toggleGroupCollapse(groupName) {
+  if (collapsedGroups.has(groupName)) {
+    collapsedGroups.delete(groupName);
+  } else {
+    collapsedGroups.add(groupName);
+  }
+  renderTable(lastCharsData);
 }
 
 function renderTable(chars) {
@@ -844,10 +867,20 @@ function renderTable(chars) {
 
   let rows = "";
   let lastGroup = null;
+  let groupCollapsed = false;
   sortedChars.forEach((c, idx) => {
     if (c.group !== lastGroup) {
       lastGroup = c.group;
-      rows += `<tr class="group-header-row"><td colspan="10">${escapeHtml(c.group || "Diğer")}</td></tr>`;
+      groupCollapsed = collapsedGroups.has(c.group || "Diğer");
+      const arrow = groupCollapsed ? "▶" : "▼";
+      rows += `<tr class="group-header-row">
+        <td colspan="10">
+          <div class="group-header-content" onclick="toggleGroupCollapse('${escapeAttr(c.group || "Diğer")}')">
+            <span>${escapeHtml(c.group || "Diğer")}</span>
+            <span class="group-toggle-btn">${arrow}</span>
+          </div>
+        </td>
+      </tr>`;
     }
 
     totalGold += c.gold_today || 0;
@@ -858,6 +891,8 @@ function renderTable(chars) {
     if (idleInfo.dot === "dot-green") active++;
     else if (idleInfo.dot === "dot-yellow") idle++;
     else stuck++;
+
+    if (groupCollapsed) return;
 
     const selKey = c.server + "::" + c.name;
     const checked = selectedChars.has(selKey) ? "checked" : "";
