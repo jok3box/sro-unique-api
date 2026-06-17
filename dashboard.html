@@ -309,6 +309,15 @@
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover { background: rgba(255,255,255,0.02); }
   tbody tr.row-selected { background: rgba(255,46,196,0.06); }
+.group-header-row td {
+  background: rgba(255,255,255,0.04);
+  color: var(--accent2);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+}
 
   .status-dot {
     display: inline-block;
@@ -816,10 +825,31 @@ function renderTable(chars) {
     return;
   }
 
+  // Grup bazli siralama: MAIN her zaman once, sonra digerleri dogal/alfabetik
+  // siraya gore (Tier2 < Tier3 gibi), eslesmeyenler ("Diger") en sona.
+  const groupRank = (g) => {
+    const gl = (g || "").toLowerCase();
+    if (gl === "main") return "0";
+    if (gl === "diğer" || gl === "diger") return "zzz_" + gl;
+    return "1_" + gl;
+  };
+  const sortedChars = [...chars].sort((a, b) => {
+    const ga = groupRank(a.group), gb = groupRank(b.group);
+    if (ga !== gb) return ga < gb ? -1 : 1;
+    return (a.name || "").localeCompare(b.name || "");
+  });
+
   let totalGold = 0, totalDeaths = 0, totalDrops = 0, totalSp = 0;
   let active = 0, idle = 0, stuck = 0;
 
-  const rows = chars.map((c, idx) => {
+  let rows = "";
+  let lastGroup = null;
+  sortedChars.forEach((c, idx) => {
+    if (c.group !== lastGroup) {
+      lastGroup = c.group;
+      rows += `<tr class="group-header-row"><td colspan="10">${escapeHtml(c.group || "Diğer")}</td></tr>`;
+    }
+
     totalGold += c.gold_today || 0;
     totalDeaths += c.deaths_today || 0;
     totalDrops += c.drops_today || 0;
@@ -841,7 +871,7 @@ function renderTable(chars) {
     const displayDeaths = streamMode ? "•••" : (c.deaths_today || 0);
     const displayDrops = streamMode ? "•••" : (c.drops_today || 0);
 
-    return `<tr class="${checked ? "row-selected" : ""}">
+    rows += `<tr class="${checked ? "row-selected" : ""}">
       <td><input type="checkbox" class="char-checkbox" data-name="${escapeAttr(c.name)}" data-server="${escapeAttr(c.server)}" ${checked} onchange="toggleSelect('${escapeAttr(selKey)}', this.checked)"></td>
       <td>
         <div class="char-name">${displayName}</div>
@@ -856,7 +886,7 @@ function renderTable(chars) {
       <td>${displayDrops}</td>
       <td><span class="status-dot ${idleInfo.dot}"></span>${idleInfo.text}</td>
     </tr>`;
-  }).join("");
+  });
 
   tbody.innerHTML = rows;
 
