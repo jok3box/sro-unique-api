@@ -432,16 +432,19 @@ def create_customer():
 @app.route("/api/license/activate", methods=["POST"])
 @limiter.limit("10 per minute")
 def activate_license():
-    """Musteri kurulum sihirbazindan lisans anahtarini ve Discord kullanici
-    ID'sini gonderir. Lisans gecerliyse (aktif + suresi dolmamis) client_secret
-    + character_limit doner; Discord kanali henuz yoksa otomatik olusturur
-    (varsa idempotent sekilde ayni kanali tekrar kullanir)."""
+    """Musteri kurulum sihirbazindan lisans anahtarini gonderir. Discord
+    kullanici ID'si İSTEĞE BAĞLIDIR - musteri Discord kullanmak istemiyorsa
+    discord_user_id hic gonderilmez, kanal hic olusturulmaz, musteri sadece
+    dashboard'u kullanir. Lisans gecerliyse (aktif + suresi dolmamis)
+    client_secret + character_limit doner; discord_user_id VERILIRSE kanal
+    henuz yoksa otomatik olusturur (varsa idempotent sekilde ayni kanali
+    tekrar kullanir)."""
     data = request.get_json(force=True)
     license_key = (data.get("license_key") or "").strip()
-    discord_user_id = (data.get("discord_user_id") or "").strip()
+    discord_user_id = (data.get("discord_user_id") or "").strip() or None
 
-    if not license_key or not discord_user_id:
-        return jsonify({"ok": False, "error": "license_key ve discord_user_id gerekli"}), 400
+    if not license_key:
+        return jsonify({"ok": False, "error": "license_key gerekli"}), 400
 
     conn = get_db()
     cur = conn.cursor()
@@ -471,22 +474,23 @@ def activate_license():
         conn.close()
         return jsonify({"ok": False, "error": "Lisansin suresi dolmus"}), 403
 
-    if not discord_channel_id:
-        new_channel_id = discord_create_customer_channel(username, discord_user_id)
-        if not new_channel_id:
+    if discord_user_id:
+        if not discord_channel_id:
+            new_channel_id = discord_create_customer_channel(username, discord_user_id)
+            if not new_channel_id:
+                cur.close()
+                conn.close()
+                return jsonify({"ok": False, "error": "Discord kanali olusturulamadi, lutfen daha sonra tekrar deneyin"}), 502
+            cur.execute(
+                "UPDATE customers SET discord_channel_id = %s, discord_user_id = %s WHERE id = %s",
+                (new_channel_id, discord_user_id, customer_id)
+            )
+            conn.commit()
+            discord_channel_id = new_channel_id
+        elif stored_discord_user_id != discord_user_id:
             cur.close()
             conn.close()
-            return jsonify({"ok": False, "error": "Discord kanali olusturulamadi, lutfen daha sonra tekrar deneyin"}), 502
-        cur.execute(
-            "UPDATE customers SET discord_channel_id = %s, discord_user_id = %s WHERE id = %s",
-            (new_channel_id, discord_user_id, customer_id)
-        )
-        conn.commit()
-        discord_channel_id = new_channel_id
-    elif stored_discord_user_id != discord_user_id:
-        cur.close()
-        conn.close()
-        return jsonify({"ok": False, "error": "Bu lisans farkli bir Discord hesabiyla aktive edilmis. Yardim icin destek ile iletisime gecin."}), 409
+            return jsonify({"ok": False, "error": "Bu lisans farkli bir Discord hesabiyla aktive edilmis. Yardim icin destek ile iletisime gecin."}), 409
 
     cur.close()
     conn.close()
