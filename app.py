@@ -652,13 +652,14 @@ def get_client_secret():
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT username, client_secret FROM customers WHERE id=%s", (customer_id,))
+        cur.execute("SELECT username, client_secret, discord_channel_id, discord_user_id FROM customers WHERE id=%s", (customer_id,))
         row = cur.fetchone()
         cur.close()
         conn.close()
         if not row:
             return jsonify({"ok": False, "error": "Musteri bulunamadi"}), 404
-        return jsonify({"ok": True, "username": row[0], "client_secret": row[1]})
+        return jsonify({"ok": True, "username": row[0], "client_secret": row[1],
+                         "discord_channel_id": row[2], "discord_user_id": row[3]})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
