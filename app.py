@@ -118,6 +118,8 @@ def discord_delete_channel(channel_id: str) -> bool:
     headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
     try:
         resp = requests.delete(f"{DISCORD_API_BASE}/channels/{channel_id}", headers=headers, timeout=10)
+        if resp.status_code not in (200, 204, 404):
+            print(f"Discord kanal silme hatasi: {resp.status_code} {resp.text}")
         return resp.status_code in (200, 204, 404)
     except Exception as e:
         print(f"Discord kanal silme istisnasi: {e}")
