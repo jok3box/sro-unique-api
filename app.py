@@ -564,6 +564,31 @@ def update_customer():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/admin/get_client_secret", methods=["POST"])
+@limiter.limit("20 per minute")
+def get_client_secret():
+    """Bir musterinin client_secret'ini dondurur - admin only. Hesap kurulumu
+    kaybedildiginde (orn. config dosyasi bozuldugunda) tekrar erisim icin."""
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    data = request.get_json(force=True)
+    customer_id = data.get("customer_id")
+    if not customer_id:
+        return jsonify({"ok": False, "error": "customer_id gerekli"}), 400
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT username, client_secret FROM customers WHERE id=%s", (customer_id,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return jsonify({"ok": False, "error": "Musteri bulunamadi"}), 404
+        return jsonify({"ok": True, "username": row[0], "client_secret": row[1]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/admin/list_customers")
 def list_customers():
     """Tum musterilerin temel bilgilerini (sifre haric) listeler - admin only."""
