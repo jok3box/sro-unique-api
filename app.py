@@ -564,6 +564,44 @@ def update_customer():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/admin/run_cleanup_now", methods=["POST"])
+@limiter.limit("10 per minute")
+def run_cleanup_now():
+    """Suresi dolmus/pasif musterilerin Discord kanallarini silme islemini
+    15 dakika beklemeden ANINDA, senkron olarak calistirir - admin only.
+    Test/teshis amacli."""
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    if not DISCORD_BOT_TOKEN:
+        return jsonify({"ok": False, "error": "DISCORD_BOT_TOKEN tanimli degil"}), 500
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, discord_channel_id FROM customers
+            WHERE discord_channel_id IS NOT NULL
+              AND (expires_at < NOW() OR active = FALSE)
+            """
+        )
+        rows = cur.fetchall()
+        results = []
+        for customer_id, channel_id in rows:
+            deleted = discord_delete_channel(channel_id)
+            results.append({"customer_id": customer_id, "channel_id": channel_id, "deleted": deleted})
+            if deleted:
+                cur.execute(
+                    "UPDATE customers SET discord_channel_id = NULL WHERE id = %s",
+                    (customer_id,)
+                )
+                conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "matched": len(rows), "results": results})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/admin/get_client_secret", methods=["POST"])
 @limiter.limit("20 per minute")
 def get_client_secret():
