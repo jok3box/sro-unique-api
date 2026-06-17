@@ -144,6 +144,31 @@ def discord_create_customer_channel(username: str, discord_user_id: str):
         return None
 
 
+def discord_send_message(channel_id: str, text: str) -> bool:
+    """Bir Discord kanalina mesaj gonderir. Musteri bildirimlerini iletmek
+    icin kullanilir - musteri tarafinda HICBIR Discord bot token'i bulunmaz,
+    gonderim TAMAMEN Railway uzerinden, bot token'i guvenli sekilde sunucu
+    tarafinda tutularak yapilir."""
+    if not DISCORD_BOT_TOKEN or not channel_id:
+        return False
+    headers = {
+        "Authorization": f"Bot {DISCORD_BOT_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    try:
+        resp = requests.post(
+            f"{DISCORD_API_BASE}/channels/{channel_id}/messages",
+            headers=headers, json={"content": text[:2000]}, timeout=10,
+        )
+        if resp.status_code not in (200, 201):
+            print(f"Discord mesaj gonderme hatasi: {resp.status_code} {resp.text}")
+            return False
+        return True
+    except Exception as e:
+        print(f"Discord mesaj gonderme istisnasi: {e}")
+        return False
+
+
 def discord_delete_channel(channel_id: str) -> bool:
     """Bir Discord kanalini tamamen siler. Kanal zaten silinmisse (404)
     bunu basarili sayar (idempotent)."""
@@ -256,13 +281,16 @@ def get_customer_by_secret():
     secret = auth[len("Bearer "):]
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT id, character_limit FROM customers WHERE client_secret = %s AND active = TRUE", (secret,))
+    cur.execute(
+        "SELECT id, character_limit, discord_channel_id FROM customers WHERE client_secret = %s AND active = TRUE",
+        (secret,)
+    )
     row = cur.fetchone()
     cur.close()
     conn.close()
     if not row:
         return None
-    return {"id": row[0], "character_limit": row[1]}
+    return {"id": row[0], "character_limit": row[1], "discord_channel_id": row[2]}
 
 
 @app.route("/api/commands", methods=["POST"])
@@ -414,6 +442,14 @@ def post_notification():
     conn.commit()
     cur.close()
     conn.close()
+
+    # Musterinin OZEL Discord kanali varsa (wizard ile kurulmus musteriler),
+    # bildirimi dogrudan o kanala da iletir. JOK3BOX'in kendi hesabinda bu
+    # alan bos oldugu icin (kendi bot baglantisini ayrica kullaniyor), bu
+    # mekanizma onun icin devreye girmez - cift bildirim olusmaz.
+    if customer.get("discord_channel_id"):
+        discord_send_message(customer["discord_channel_id"], f"**{label}**\n{text}")
+
     return jsonify({"ok": True})
 
 
