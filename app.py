@@ -43,6 +43,87 @@ limiter = Limiter(
 
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET")
 
+# Discord musteri kanal otomasyonu - musteri lisans aktive ettiginde
+# kendisine ozel, sadece kendisinin (ve kategori seviyesinde zaten
+# yetkili rollerin) gorebilecegi bir Discord kanali otomatik acilir.
+# Lisans suresi dolunca (asagidaki arka plan temizlik dongusu ile)
+# kanal tamamen silinir.
+DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
+DISCORD_GUILD_ID = os.environ.get("DISCORD_GUILD_ID")
+DISCORD_CUSTOMER_CATEGORY_ID = os.environ.get("DISCORD_CUSTOMER_CATEGORY_ID")
+
+DISCORD_API_BASE = "https://discord.com/api/v10"
+_PERM_VIEW_CHANNEL = 1 << 10
+_PERM_SEND_MESSAGES = 1 << 11
+_PERM_READ_MESSAGE_HISTORY = 1 << 16
+_CUSTOMER_ALLOW_PERMS = str(_PERM_VIEW_CHANNEL | _PERM_SEND_MESSAGES | _PERM_READ_MESSAGE_HISTORY)
+
+
+def _sanitize_discord_channel_name(username: str) -> str:
+    """Discord kanal adi kurallarina uygun hale getirir (kucuk harf, sadece
+    harf/sayi/tire, bosluklar tireye donusur, 90 karakterle sinirlanir)."""
+    name = f"musteri-{username}".lower()
+    name = re.sub(r"[^a-z0-9\-]", "-", name)
+    name = re.sub(r"-+", "-", name).strip("-")
+    return name[:90] or "musteri"
+
+
+def discord_create_customer_channel(username: str, discord_user_id: str):
+    """Musteri icin Discord'da OZEL bir kanal olusturur. Kategori zaten
+    sadece belirli rollerin gorebilecegi sekilde ayarlanmis - burada
+    AYRICA @everyone'a acikca kanal-seviyesinde GORME izni reddedilir,
+    ve sadece bu musterinin discord_user_id'sine ozel gorme/yazma izni
+    verilir. Kategoriye erisimi olan diger roller (orn. admin) varsayilan
+    davranisla (override edilmedigi icin) erisimini korur. Basarili
+    olursa yeni kanalin ID'sini (str) doner, basarisiz olursa None doner."""
+    if not (DISCORD_BOT_TOKEN and DISCORD_GUILD_ID):
+        print("UYARI: DISCORD_BOT_TOKEN veya DISCORD_GUILD_ID tanimli degil, kanal olusturulamadi.")
+        return None
+
+    channel_name = _sanitize_discord_channel_name(username)
+    payload = {
+        "name": channel_name,
+        "type": 0,
+        "permission_overwrites": [
+            {"id": DISCORD_GUILD_ID, "type": 0, "deny": str(_PERM_VIEW_CHANNEL)},
+            {"id": str(discord_user_id), "type": 1, "allow": _CUSTOMER_ALLOW_PERMS},
+        ],
+    }
+    if DISCORD_CUSTOMER_CATEGORY_ID:
+        payload["parent_id"] = DISCORD_CUSTOMER_CATEGORY_ID
+
+    headers = {
+        "Authorization": f"Bot {DISCORD_BOT_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    try:
+        resp = requests.post(
+            f"{DISCORD_API_BASE}/guilds/{DISCORD_GUILD_ID}/channels",
+            headers=headers, json=payload, timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            return str(resp.json()["id"])
+        print(f"Discord kanal olusturma hatasi: {resp.status_code} {resp.text}")
+        return None
+    except Exception as e:
+        print(f"Discord kanal olusturma istisnasi: {e}")
+        return None
+
+
+def discord_delete_channel(channel_id: str) -> bool:
+    """Bir Discord kanalini tamamen siler. Kanal zaten silinmisse (404)
+    bunu basarili sayar (idempotent)."""
+    if not DISCORD_BOT_TOKEN or not channel_id:
+        return False
+    headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
+    try:
+        resp = requests.delete(f"{DISCORD_API_BASE}/channels/{channel_id}", headers=headers, timeout=10)
+        return resp.status_code in (200, 204, 404)
+    except Exception as e:
+        print(f"Discord kanal silme istisnasi: {e}")
+        return False
+
+
 def get_current_customer():
     token = request.cookies.get("session_token")
     if not token:
@@ -269,6 +350,37 @@ def get_status():
     return jsonify({"ok": True, "data": row[0], "updated_at": row[1].isoformat()})
 
 
+@app.route("/api/notifications", methods=["POST"])
+@limiter.limit("120 per minute")
+def post_notification():
+    """Discord bot'un gonderdigi otomatik bildirimleri (olum, drop, takilma,
+    periyodik ozet) 'Son Komutlar' panelinde komutlarla AYNI kronolojik
+    listede gostermek icin commands tablosuna tamamlanmis ('done') bir
+    kayit olarak ekler."""
+    customer = get_customer_by_secret()
+    if not customer:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    data = request.get_json(force=True)
+    label = (data.get("label") or "🔔 Bildirim").strip()
+    text = (data.get("text") or "").strip()
+    if not text:
+        return jsonify({"ok": False, "error": "text gerekli"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO commands (customer_id, command, status, result, completed_at)
+        VALUES (%s, %s, 'done', %s, NOW())
+        """,
+        (customer["id"], label, text)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/admin/create_customer", methods=["POST"])
 @limiter.limit("20 per minute")
 def create_customer():
@@ -315,6 +427,77 @@ def create_customer():
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/license/activate", methods=["POST"])
+@limiter.limit("10 per minute")
+def activate_license():
+    """Musteri kurulum sihirbazindan lisans anahtarini ve Discord kullanici
+    ID'sini gonderir. Lisans gecerliyse (aktif + suresi dolmamis) client_secret
+    + character_limit doner; Discord kanali henuz yoksa otomatik olusturur
+    (varsa idempotent sekilde ayni kanali tekrar kullanir)."""
+    data = request.get_json(force=True)
+    license_key = (data.get("license_key") or "").strip()
+    discord_user_id = (data.get("discord_user_id") or "").strip()
+
+    if not license_key or not discord_user_id:
+        return jsonify({"ok": False, "error": "license_key ve discord_user_id gerekli"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, username, client_secret, character_limit, discord_channel_id,
+               discord_user_id, expires_at, active
+        FROM customers WHERE license_key = %s
+        """,
+        (license_key,)
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Lisans anahtari bulunamadi"}), 404
+
+    (customer_id, username, client_secret, character_limit,
+     discord_channel_id, stored_discord_user_id, expires_at, active) = row
+
+    if not active:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Lisans aktif degil"}), 403
+    if expires_at < datetime.utcnow():
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Lisansin suresi dolmus"}), 403
+
+    if not discord_channel_id:
+        new_channel_id = discord_create_customer_channel(username, discord_user_id)
+        if not new_channel_id:
+            cur.close()
+            conn.close()
+            return jsonify({"ok": False, "error": "Discord kanali olusturulamadi, lutfen daha sonra tekrar deneyin"}), 502
+        cur.execute(
+            "UPDATE customers SET discord_channel_id = %s, discord_user_id = %s WHERE id = %s",
+            (new_channel_id, discord_user_id, customer_id)
+        )
+        conn.commit()
+        discord_channel_id = new_channel_id
+    elif stored_discord_user_id != discord_user_id:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Bu lisans farkli bir Discord hesabiyla aktive edilmis. Yardim icin destek ile iletisime gecin."}), 409
+
+    cur.close()
+    conn.close()
+    return jsonify({
+        "ok": True,
+        "client_secret": client_secret,
+        "character_limit": character_limit,
+        "discord_channel_id": discord_channel_id,
+        "expires_at": expires_at.isoformat(),
+    })
+
 
 def _check_admin_auth():
     """Admin-only uclar icin ortak yetkilendirme kontrolu.
@@ -418,6 +601,10 @@ def db_init():
                 created_at TIMESTAMP DEFAULT NOW(),
                 active BOOLEAN DEFAULT TRUE
             );
+        """)
+        cur.execute("""
+            ALTER TABLE customers
+            ADD COLUMN IF NOT EXISTS discord_user_id VARCHAR(32);
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
@@ -685,6 +872,53 @@ def widget_page():
     with open(path, "r", encoding="utf-8") as f:
         html = f.read()
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+def _expired_channel_cleanup_loop():
+    """15 dakikada bir suresi dolmus veya pasif hale getirilmis musterilerin
+    Discord kanallarini tarar ve tamamen siler (kullanicinin tercihi: kanal
+    history'siyle birlikte tamamen kaldirilsin). Idempotent."""
+    import time as _time
+    while True:
+        try:
+            if DISCORD_BOT_TOKEN:
+                conn = get_db()
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    SELECT id, discord_channel_id FROM customers
+                    WHERE discord_channel_id IS NOT NULL
+                      AND (expires_at < NOW() OR active = FALSE)
+                    """
+                )
+                rows = cur.fetchall()
+                for customer_id, channel_id in rows:
+                    if discord_delete_channel(channel_id):
+                        cur.execute(
+                            "UPDATE customers SET discord_channel_id = NULL WHERE id = %s",
+                            (customer_id,)
+                        )
+                        conn.commit()
+                        print(f"Suresi dolan musteri (id={customer_id}) Discord kanali silindi.")
+                cur.close()
+                conn.close()
+        except Exception as e:
+            print(f"Kanal temizlik dongusu hatasi: {e}")
+        _time.sleep(900)
+
+
+_cleanup_thread_started = False
+
+
+def _start_cleanup_thread():
+    global _cleanup_thread_started
+    if _cleanup_thread_started:
+        return
+    _cleanup_thread_started = True
+    threading.Thread(target=_expired_channel_cleanup_loop, daemon=True).start()
+
+
+_start_cleanup_thread()
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
