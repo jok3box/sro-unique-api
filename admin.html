@@ -213,8 +213,8 @@
     <div class="panel">
       <h2>Yeni Lisans Olustur</h2>
       <div class="form-row">
-        <div class="field"><label>Kullanici Adi</label><input id="nc-username" type="text"></div>
-        <div class="field"><label>Sifre</label><input id="nc-password" type="text"></div>
+        <div class="field"><label>Kullanici Adi (opsiyonel)</label><input id="nc-username" type="text" placeholder="Bos birakilirsa musteri kendi belirler"></div>
+        <div class="field"><label>Sifre (opsiyonel)</label><input id="nc-password" type="text" placeholder="Bos birakilirsa musteri kendi belirler"></div>
         <div class="field"><label>Karakter Limiti</label><input id="nc-limit" type="number" value="5"></div>
         <div class="field"><label>Gun Sayisi</label><input id="nc-days" type="number" value="30"></div>
         <button class="btn" onclick="createCustomer()">Olustur</button>
@@ -374,12 +374,6 @@ async function createCustomer() {
   const limit = parseInt(document.getElementById("nc-limit").value, 10);
   const days = parseInt(document.getElementById("nc-days").value, 10);
   const resultBox = document.getElementById("create-result");
-
-  if (!username || !password) {
-    resultBox.className = "result-box show error";
-    resultBox.innerText = "Kullanici adi ve sifre gerekli.";
-    return;
-  }
 
   try {
     const resp = await fetch("/api/admin/create_customer", {
