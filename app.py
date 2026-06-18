@@ -316,7 +316,7 @@ def submit_command():
 def poll_commands():
     customer = get_customer_by_secret()
     if not customer:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT id, command FROM commands WHERE customer_id = %s AND status = 'pending' ORDER BY id", (customer["id"],))
@@ -330,7 +330,7 @@ def poll_commands():
 def post_command_result(cmd_id):
     customer = get_customer_by_secret()
     if not customer:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     data = request.get_json(force=True)
     result = data.get("result", "")
     conn = get_db()
@@ -370,7 +370,7 @@ def commands_history():
 def post_status():
     customer = get_customer_by_secret()
     if not customer:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     data = request.get_json(force=True)
 
     # Lisans kisitlamasi: musteri kendi character_limit'inin uzerinde
@@ -423,7 +423,7 @@ def post_notification():
     kayit olarak ekler."""
     customer = get_customer_by_secret()
     if not customer:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     data = request.get_json(force=True)
     label = (data.get("label") or "🔔 Bildirim").strip()
     text = (data.get("text") or "").strip()
@@ -457,7 +457,7 @@ def post_notification():
 @limiter.limit("20 per minute")
 def create_customer():
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
 
     data = request.get_json(force=True)
     username = data.get("username")
@@ -590,7 +590,7 @@ def update_customer():
     iptal edilir - bu sayede sifre degisikliginde veya hesap askiya alindiginda
     eski/calinmis token'lar artik gecersiz olur."""
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
 
     data = request.get_json(force=True)
     customer_id = data.get("customer_id")
@@ -646,7 +646,7 @@ def delete_customer():
     Discord'da sonsuza kadar kalir (periyodik temizlik artik onu bulamaz,
     cunku aradigi customers satiri yok olur)."""
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
 
     data = request.get_json(force=True)
     customer_id = data.get("customer_id")
@@ -686,7 +686,7 @@ def run_cleanup_now():
     15 dakika beklemeden ANINDA, senkron olarak calistirir - admin only.
     Test/teshis amacli."""
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     if not DISCORD_BOT_TOKEN:
         return jsonify({"ok": False, "error": "DISCORD_BOT_TOKEN tanimli degil"}), 500
     try:
@@ -723,7 +723,7 @@ def get_client_secret():
     """Bir musterinin client_secret'ini dondurur - admin only. Hesap kurulumu
     kaybedildiginde (orn. config dosyasi bozuldugunda) tekrar erisim icin."""
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     data = request.get_json(force=True)
     customer_id = data.get("customer_id")
     if not customer_id:
@@ -747,7 +747,7 @@ def get_client_secret():
 def list_customers():
     """Tum musterilerin temel bilgilerini (sifre haric) listeler - admin only."""
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -767,7 +767,7 @@ def list_customers():
 @app.route("/api/db/init")
 def db_init():
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -825,14 +825,14 @@ def db_init():
 @app.route("/api/db/debug")
 def db_debug():
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     keys = [k for k in os.environ.keys() if any(s in k.upper() for s in ["DATABASE", "POSTGRES", "PG"])]
     return jsonify({"matching_keys": keys, "DATABASE_URL_set": DATABASE_URL is not None})
 
 @app.route("/api/db/test")
 def db_test():
     if not _check_admin_auth():
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
     try:
         conn = get_db()
         cur = conn.cursor()
