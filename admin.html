@@ -296,7 +296,7 @@ function renderCustomers(customers) {
     tr.innerHTML = `
       <td>${c.id}</td>
       <td>${c.username}</td>
-      <td><span style="filter:blur(4px);cursor:pointer;font-family:monospace;font-size:12px;" onclick="var s=this.style;s.filter=s.filter?'':`blur(4px)`;" title="Gormek icin tiklayin">${c.license_key||'-'}</span></td>
+      <td><span style="filter:blur(4px);cursor:pointer;font-family:monospace;font-size:12px;" onclick="this.style.filter=this.style.filter?'blur(4px)':''" title="Gormek icin tiklayin">${c.license_key || '-'}</span></td>
       <td>${c.character_limit}</td>
       <td>${expDate}</td>
       <td><span class="badge ${c.active ? "active" : "inactive"}">${c.active ? "Aktif" : "Pasif"}</span></td>
