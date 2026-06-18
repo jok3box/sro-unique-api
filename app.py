@@ -805,13 +805,13 @@ def list_customers():
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT id, username, character_limit, expires_at, active FROM customers ORDER BY id")
+        cur.execute("SELECT id, username, character_limit, expires_at, active, license_key FROM customers ORDER BY id")
         rows = cur.fetchall()
         cur.close()
         conn.close()
         return jsonify({"ok": True, "customers": [
             {"id": r[0], "username": r[1], "character_limit": r[2],
-             "expires_at": r[3].isoformat(), "active": r[4]}
+             "expires_at": r[3].isoformat(), "active": r[4], "license_key": r[5]}
             for r in rows
         ]})
     except Exception as e:

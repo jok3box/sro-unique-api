@@ -230,7 +230,7 @@
       <div style="overflow-x: auto;">
         <table>
           <thead>
-            <tr><th>ID</th><th>Kullanici Adi</th><th>Karakter Limiti</th><th>Bitis Tarihi</th><th>Durum</th><th>Aksiyonlar</th></tr>
+            <tr><th>ID</th><th>Kullanici Adi</th><th>Lisans Anahtari</th><th>Karakter Limiti</th><th>Bitis Tarihi</th><th>Durum</th><th>Aksiyonlar</th></tr>
           </thead>
           <tbody id="customers-tbody"></tbody>
         </table>
@@ -296,6 +296,7 @@ function renderCustomers(customers) {
     tr.innerHTML = `
       <td>${c.id}</td>
       <td>${c.username}</td>
+      <td><span style="filter:blur(4px);cursor:pointer;font-family:monospace;font-size:12px;" onclick="var s=this.style;s.filter=s.filter?'':`blur(4px)`;" title="Gormek icin tiklayin">${c.license_key||'-'}</span></td>
       <td>${c.character_limit}</td>
       <td>${expDate}</td>
       <td><span class="badge ${c.active ? "active" : "inactive"}">${c.active ? "Aktif" : "Pasif"}</span></td>
