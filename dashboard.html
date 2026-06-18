@@ -593,8 +593,8 @@
         <div class="mixer-group">
           <div class="mixer-group-label">Grup Kontrolü</div>
           <input id="group-select-input" placeholder="Grup (örn: MAIN, Tier2, Tier3)">
-          <button class="mixer-btn" onclick="mixerGroupStart()">▶️ Grubu Başlat</button>
-          <button class="mixer-btn stop" onclick="mixerGroupStop()">⏹️ Grubu Durdur</button>
+          <button class="mixer-btn start" onclick="mixerGroupStart()">▶️ Grubu / Char Başlat</button>
+          <button class="mixer-btn stop" onclick="mixerGroupStop()">⏹️ Grubu / Char Durdur</button>
         </div>
 
         <div class="mixer-group">
@@ -1112,21 +1112,38 @@ async function mixerReverse() {
 
 async function mixerGroupStart() {
   const group = document.getElementById("group-select-input").value.trim();
-  if (!group) { mixerLog("Grup adı girin."); return; }
-  const cmd = `!grupbaslat ${group}`;
-  const id = await sendRawCommand(cmd);
-  pollAndLog(id, cmd);
+  if (group) {
+    const cmd = `!grupbaslat ${group}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  } else {
+    const items = parseSelectedChars();
+    if (!items.length) { mixerLog("Grup adı girin veya karakter seçin."); return; }
+    for (const {server, name} of items) {
+      const cmd = `!baslat ${server} ${name}`;
+      const id = await sendRawCommand(cmd);
+      pollAndLog(id, cmd);
+    }
+  }
 }
 
 async function mixerGroupStop() {
   const group = document.getElementById("group-select-input").value.trim();
-  if (!group) { mixerLog("Grup adı girin."); return; }
-  if (!confirm(`'${group}' grubundaki TÜM karakterlerin botunu durdurmak istediğinizden emin misiniz?\n\nBu işlem geri alınamaz, karakterler botsuz kalır.`)) {
-    return;
+  if (group) {
+    if (!confirm(`'${group}' grubundaki TUM karakterlerin botunu durdurmak istediginizden emin misiniz?\n\nBu islem geri alinamaz.`)) return;
+    const cmd = `!grupdurdur ${group}`;
+    const id = await sendRawCommand(cmd);
+    pollAndLog(id, cmd);
+  } else {
+    const items = parseSelectedChars();
+    if (!items.length) { mixerLog("Grup adi girin veya karakter secin."); return; }
+    if (!confirm(`Secili ${items.length} karakterin botunu durdurmak istediginizden emin misiniz?`)) return;
+    for (const {server, name} of items) {
+      const cmd = `!durdur ${server} ${name}`;
+      const id = await sendRawCommand(cmd);
+      pollAndLog(id, cmd);
+    }
   }
-  const cmd = `!grupdurdur ${group}`;
-  const id = await sendRawCommand(cmd);
-  pollAndLog(id, cmd);
 }
 
 async function mixerCoord() {
