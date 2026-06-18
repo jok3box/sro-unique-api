@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>phBot Monitor &mdash; Admin Panel</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #14141c;
+    --border: #2a2a38;
+    --accent: #ff2ec4;
+    --accent2: #00e0ff;
+    --text: #e8e8f0;
+    --text-dim: #8a8a9c;
+    --green: #3ddc84;
+    --yellow: #ffd34d;
+    --red: #ff5c5c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .center-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .login-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    width: 340px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(255,46,196,0.08);
+  }
+  .login-box h1 {
+    font-size: 20px;
+    margin: 0 0 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .login-box p { color: var(--text-dim); font-size: 13px; margin: 0 0 24px; }
+  .login-box input {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #1c1c28;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .login-box button {
+    width: 100%;
+    padding: 11px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #0a0a0f;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .login-box button:hover { opacity: 0.9; }
+  #login-error { color: var(--red); font-size: 12px; margin-top: 10px; min-height: 16px; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 {
+    font-size: 18px;
+    margin: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header .sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+  main {
+    padding: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .panel h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    margin: 0 0 16px;
+  }
+
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: var(--text-dim); }
+  .field input {
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #1c1c28;
+    color: var(--text);
+    font-size: 13px;
+    width: 160px;
+  }
+  .btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #0a0a0f;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn-secondary {
+    background: #1c1c28;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-small { padding: 5px 10px; font-size: 12px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--text-dim); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; }
+  td { padding: 10px 10px; border-bottom: 1px solid var(--border); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .badge.active { background: rgba(61,220,132,0.15); color: var(--green); }
+  .badge.inactive { background: rgba(255,92,92,0.15); color: var(--red); }
+  .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .result-box {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 8px;
+    background: #1c1c28;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    display: none;
+  }
+  .result-box.show { display: block; }
+  .result-box.success { border-color: var(--green); }
+  .result-box.error { border-color: var(--red); color: var(--red); }
+  .license-key {
+    font-family: 'Consolas', monospace;
+    font-size: 16px;
+    color: var(--accent2);
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  .hint { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="center-screen">
+  <div class="login-box">
+    <h1>phBot Monitor</h1>
+    <p>Admin Panel</p>
+    <input type="password" id="admin-secret-input" placeholder="Admin anahtari">
+    <button onclick="doLogin()">Giris</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<div id="app-screen" style="display:none;">
+  <header>
+    <div>
+      <h1>phBot Monitor &mdash; Admin Panel</h1>
+      <div class="sub">Lisans ve musteri yonetimi</div>
+    </div>
+    <button class="btn btn-secondary" onclick="doLogout()">Cikis</button>
+  </header>
+
+  <main>
+    <div class="panel">
+      <h2>Yeni Lisans Olustur</h2>
+      <div class="form-row">
+        <div class="field"><label>Kullanici Adi</label><input id="nc-username" type="text"></div>
+        <div class="field"><label>Sifre</label><input id="nc-password" type="text"></div>
+        <div class="field"><label>Karakter Limiti</label><input id="nc-limit" type="number" value="5"></div>
+        <div class="field"><label>Gun Sayisi</label><input id="nc-days" type="number" value="30"></div>
+        <button class="btn" onclick="createCustomer()">Olustur</button>
+      </div>
+      <div id="create-result" class="result-box"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Musteriler</h2>
+      <div style="margin-bottom: 12px;">
+        <button class="btn btn-secondary btn-small" onclick="loadCustomers()">Yenile</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Kullanici Adi</th><th>Karakter Limiti</th><th>Bitis Tarihi</th><th>Durum</th><th>Aksiyonlar</th></tr>
+        </thead>
+        <tbody id="customers-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Bakim</h2>
+      <button class="btn btn-secondary" onclick="runCleanup()">Pasif Musteri Kanallarini Simdi Temizle</button>
+      <div id="cleanup-result" class="result-box"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+let adminSecret = localStorage.getItem("phbot_admin_secret") || "";
+
+function authHeaders() {
+  return { "Authorization": "Bearer " + adminSecret, "Content-Type": "application/json" };
+}
+
+async function doLogin() {
+  const input = document.getElementById("admin-secret-input").value.trim();
+  if (!input) return;
+  adminSecret = input;
+  try {
+    const resp = await fetch("/api/admin/list_customers", { headers: authHeaders() });
+    const data = await resp.json();
+    if (data.ok) {
+      localStorage.setItem("phbot_admin_secret", adminSecret);
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app-screen").style.display = "block";
+      renderCustomers(data.customers);
+    } else {
+      document.getElementById("login-error").innerText = "Gecersiz admin anahtari.";
+    }
+  } catch (e) {
+    document.getElementById("login-error").innerText = "Baglanti hatasi: " + e.message;
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem("phbot_admin_secret");
+  adminSecret = "";
+  document.getElementById("app-screen").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+}
+
+async function loadCustomers() {
+  try {
+    const resp = await fetch("/api/admin/list_customers", { headers: authHeaders() });
+    const data = await resp.json();
+    if (data.ok) renderCustomers(data.customers);
+  } catch (e) { console.error(e); }
+}
+
+function renderCustomers(customers) {
+  const tbody = document.getElementById("customers-tbody");
+  tbody.innerHTML = "";
+  customers.forEach(c => {
+    const tr = document.createElement("tr");
+    const expDate = new Date(c.expires_at).toLocaleDateString("tr-TR");
+    tr.innerHTML = `
+      <td>${c.id}</td>
+      <td>${c.username}</td>
+      <td>${c.character_limit}</td>
+      <td>${expDate}</td>
+      <td><span class="badge ${c.active ? "active" : "inactive"}">${c.active ? "Aktif" : "Pasif"}</span></td>
+      <td class="row-actions">
+        <button class="btn btn-secondary btn-small" onclick="toggleActive(${c.id}, ${!c.active})">${c.active ? "Pasif Yap" : "Aktif Yap"}</button>
+        <button class="btn btn-secondary btn-small" onclick="extendDays(${c.id})">Sure Uzat</button>
+        <button class="btn btn-secondary btn-small" onclick="changePassword(${c.id})">Sifre Degistir</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function toggleActive(customerId, newActive) {
+  try {
+    const resp = await fetch("/api/admin/update_customer", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ customer_id: customerId, active: newActive })
+    });
+    const data = await resp.json();
+    if (data.ok) loadCustomers();
+    else alert("Hata: " + data.error);
+  } catch (e) { alert("Baglanti hatasi: " + e.message); }
+}
+
+async function extendDays(customerId) {
+  const days = prompt("Kac gun uzatilsin?", "30");
+  if (!days) return;
+  try {
+    const resp = await fetch("/api/admin/update_customer", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ customer_id: customerId, extend_days: parseInt(days, 10) })
+    });
+    const data = await resp.json();
+    if (data.ok) loadCustomers();
+    else alert("Hata: " + data.error);
+  } catch (e) { alert("Baglanti hatasi: " + e.message); }
+}
+
+async function changePassword(customerId) {
+  const pw = prompt("Yeni sifre:");
+  if (!pw) return;
+  try {
+    const resp = await fetch("/api/admin/update_customer", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ customer_id: customerId, password: pw })
+    });
+    const data = await resp.json();
+    if (data.ok) alert("Sifre guncellendi.");
+    else alert("Hata: " + data.error);
+  } catch (e) { alert("Baglanti hatasi: " + e.message); }
+}
+
+async function createCustomer() {
+  const username = document.getElementById("nc-username").value.trim();
+  const password = document.getElementById("nc-password").value.trim();
+  const limit = parseInt(document.getElementById("nc-limit").value, 10);
+  const days = parseInt(document.getElementById("nc-days").value, 10);
+  const resultBox = document.getElementById("create-result");
+
+  if (!username || !password) {
+    resultBox.className = "result-box show error";
+    resultBox.innerText = "Kullanici adi ve sifre gerekli.";
+    return;
+  }
+
+  try {
+    const resp = await fetch("/api/admin/create_customer", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ username, password, character_limit: limit, days })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      resultBox.className = "result-box show success";
+      resultBox.innerHTML = "Lisans olusturuldu! <br><span class=\"license-key\" onclick=\"navigator.clipboard.writeText('" + data.license_key + "')\">" + data.license_key + "</span><div class=\"hint\">Tiklayinca kopyalanir.</div>";
+      document.getElementById("nc-username").value = "";
+      document.getElementById("nc-password").value = "";
+      loadCustomers();
+    } else {
+      resultBox.className = "result-box show error";
+      resultBox.innerText = "Hata: " + data.error;
+    }
+  } catch (e) {
+    resultBox.className = "result-box show error";
+    resultBox.innerText = "Baglanti hatasi: " + e.message;
+  }
+}
+
+async function runCleanup() {
+  const resultBox = document.getElementById("cleanup-result");
+  try {
+    const resp = await fetch("/api/admin/run_cleanup_now", { method: "POST", headers: authHeaders() });
+    const data = await resp.json();
+    if (data.ok) {
+      resultBox.className = "result-box show success";
+      resultBox.innerText = data.matched + " kanal kontrol edildi, sonuc: " + JSON.stringify(data.results);
+    } else {
+      resultBox.className = "result-box show error";
+      resultBox.innerText = "Hata: " + data.error;
+    }
+  } catch (e) {
+    resultBox.className = "result-box show error";
+    resultBox.innerText = "Baglanti hatasi: " + e.message;
+  }
+}
+
+window.addEventListener("load", () => {
+  if (adminSecret) {
+    document.getElementById("admin-secret-input").value = adminSecret;
+    doLogin();
+  }
+});
+</script>
+</body>
+</html>

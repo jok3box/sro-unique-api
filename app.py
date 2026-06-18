@@ -1006,6 +1006,13 @@ def dashboard_page():
         html = f.read()
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
+@app.route("/admin")
+def admin_page():
+    path = os.path.join(os.path.dirname(__file__), "admin.html")
+    with open(path, "r", encoding="utf-8") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
 @app.route("/widget")
 def widget_page():
     path = os.path.join(os.path.dirname(__file__), "widget.html")
