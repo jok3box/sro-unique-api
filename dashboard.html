@@ -192,6 +192,18 @@
   @media (max-width: 1180px) {
     .main-grid { grid-template-columns: 1fr; }
   }
+  @media (max-width: 480px) {
+    .container { padding: 10px; }
+    .header-banner-wrap { height: 80px; }
+    .login-banner-wrap { height: 100px; }
+    header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+    header .header-actions { flex-wrap: wrap; }
+    .summary-bar { gap: 8px; }
+    .summary-card { padding: 10px 12px; min-width: 90px; }
+    .summary-card .value { font-size: 17px; }
+    .panel { padding: 14px; }
+    .login-box { width: calc(100% - 24px); padding: 28px 20px; }
+  }
 
   .mixer-panel {
     background: var(--panel);

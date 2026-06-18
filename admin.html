@@ -2,6 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>phBot Monitor &mdash; Admin Panel</title>
 <style>
   :root {
@@ -172,6 +173,19 @@
     cursor: pointer;
   }
   .hint { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+
+  @media (max-width: 700px) {
+    main { padding: 14px; gap: 16px; }
+    .panel { padding: 14px; }
+    .form-row { gap: 10px; }
+    .field { flex: 1 1 140px; }
+    .field input { width: 100%; }
+    .login-box { width: calc(100% - 32px); max-width: 320px; padding: 28px 20px; }
+    table { font-size: 12px; }
+    th, td { padding: 8px 6px; }
+    .row-actions { gap: 4px; }
+    .btn-small { padding: 5px 8px; font-size: 11px; }
+  }
 </style>
 </head>
 <body>
@@ -213,12 +227,14 @@
       <div style="margin-bottom: 12px;">
         <button class="btn btn-secondary btn-small" onclick="loadCustomers()">Yenile</button>
       </div>
-      <table>
-        <thead>
-          <tr><th>ID</th><th>Kullanici Adi</th><th>Karakter Limiti</th><th>Bitis Tarihi</th><th>Durum</th><th>Aksiyonlar</th></tr>
-        </thead>
-        <tbody id="customers-tbody"></tbody>
-      </table>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Kullanici Adi</th><th>Karakter Limiti</th><th>Bitis Tarihi</th><th>Durum</th><th>Aksiyonlar</th></tr>
+          </thead>
+          <tbody id="customers-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="panel">
