@@ -191,6 +191,11 @@
   .main-grid > div { min-width: 0; width: 100%; }
   @media (max-width: 1180px) {
     .main-grid { grid-template-columns: 1fr; }
+    /* Tek sutuna dustugunde mixer paneli artik kendi sutununda degil,
+       icerigin USTUNDE duruyor - "sticky" burada paneli ekranin
+       basina yapistirip alttaki karakter listesinin uzerine biniyor
+       ve dokunmayi engelliyor. Bu yuzden mobilde sticky kapatilir. */
+    .mixer-panel { position: static; top: auto; }
   }
   @media (max-width: 480px) {
     .container { padding: 10px; }
