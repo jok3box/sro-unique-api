@@ -465,8 +465,14 @@ def create_customer():
     character_limit = data.get("character_limit", 5)
     days = data.get("days", 30)
 
-    if not username or not password:
-        return jsonify({"ok": False, "error": "username ve password gerekli"}), 400
+    # Kullanici adi/sifre verilmezse otomatik gecici (kimsenin bilmedigi) bir
+    # deger uretilir - musteri kendi kullanici adi/sifresini lisans anahtariyla
+    # /activate sayfasi uzerinden kendisi belirleyecek (kurulum sihirbazi
+    # otomatik olarak bu sayfayi acar).
+    if not username:
+        username = "pending_" + secrets.token_hex(6)
+    if not password:
+        password = secrets.token_urlsafe(16)
 
     license_key = secrets.token_hex(8).upper()
     client_secret = secrets.token_urlsafe(32)
@@ -573,6 +579,54 @@ def activate_license():
         "discord_channel_id": discord_channel_id,
         "expires_at": expires_at.isoformat(),
     })
+
+
+@app.route("/api/license/set_credentials", methods=["POST"])
+@limiter.limit("10 per minute")
+def set_credentials():
+    """Musteri kendi dashboard kullanici adi/sifresini lisans anahtariyla
+    kendisi belirler (kurulum sihirbazi acilan /activate sayfasindan
+    cagrilir). Ayni endpoint sifre sifirlama/degistirme icin de kullanilabilir
+    - lisans anahtarini bilen herkes (yani musterinin kendisi) bu islemi
+    istedigi zaman tekrar yapabilir."""
+    data = request.get_json(force=True)
+    license_key = (data.get("license_key") or "").strip()
+    new_username = (data.get("username") or "").strip()
+    new_password = data.get("password") or ""
+
+    if not license_key:
+        return jsonify({"ok": False, "error": "license_key gerekli"}), 400
+    if not new_username or not new_password:
+        return jsonify({"ok": False, "error": "Kullanici adi ve sifre gerekli"}), 400
+    if len(new_password) < 6:
+        return jsonify({"ok": False, "error": "Sifre en az 6 karakter olmali"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM customers WHERE license_key = %s", (license_key,))
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Lisans anahtari bulunamadi"}), 404
+    customer_id = row[0]
+
+    cur.execute("SELECT id FROM customers WHERE username = %s AND id != %s", (new_username, customer_id))
+    conflict = cur.fetchone()
+    if conflict:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Bu kullanici adi zaten kullaniliyor, baska bir tane secin"}), 409
+
+    password_hash = generate_password_hash(new_password)
+    cur.execute(
+        "UPDATE customers SET username = %s, password_hash = %s WHERE id = %s",
+        (new_username, password_hash, customer_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True, "username": new_username})
 
 
 def _check_admin_auth():
@@ -1052,6 +1106,13 @@ def dashboard_page():
 @app.route("/admin")
 def admin_page():
     path = os.path.join(os.path.dirname(__file__), "admin.html")
+    with open(path, "r", encoding="utf-8") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+@app.route("/activate")
+def activate_page():
+    path = os.path.join(os.path.dirname(__file__), "activate.html")
     with open(path, "r", encoding="utf-8") as f:
         html = f.read()
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
