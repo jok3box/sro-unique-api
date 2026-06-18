@@ -831,10 +831,11 @@ async function logout() {
   showLogin();
 }
 
-function idleLabel(sec) {
+function idleLabel(sec, clientRunning) {
+  if (clientRunning === false) return { text: "Client Kapali", dot: "dot-red" };
   if (sec < 120) return { text: "Aktif", dot: "dot-green" };
-  if (sec < 600) return { text: Math.floor(sec/60) + "dk boşta", dot: "dot-yellow" };
-  return { text: Math.floor(sec/60) + "dk boşta", dot: "dot-red" };
+  if (sec < 600) return { text: Math.floor(sec/60) + "dk bosta", dot: "dot-yellow" };
+  return { text: Math.floor(sec/60) + "dk bosta", dot: "dot-red" };
 }
 
 async function refreshStatus() {
@@ -907,7 +908,7 @@ function renderTable(chars) {
     totalDeaths += c.deaths_today || 0;
     totalDrops += c.drops_today || 0;
     totalSp += c.total_sp || 0;
-    const idleInfo = idleLabel(c.idle_seconds || 0);
+    const idleInfo = idleLabel(c.idle_seconds || 0, c.client_running);
     if (idleInfo.dot === "dot-green") active++;
     else if (idleInfo.dot === "dot-yellow") idle++;
     else stuck++;
