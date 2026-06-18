@@ -636,6 +636,49 @@ def update_customer():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/admin/delete_customer", methods=["POST"])
+@limiter.limit("10 per minute")
+def delete_customer():
+    """Bir musteriyi VERITABANINDAN TAMAMEN siler (geri alinamaz).
+    Iliskili sessions/commands/status_reports kayitlari ON DELETE CASCADE
+    ile otomatik silinir. Eger musterinin bir Discord kanali varsa, once o
+    kanal silinir - yoksa musteri kaydi gidince sahipsiz/orphan kanal
+    Discord'da sonsuza kadar kalir (periyodik temizlik artik onu bulamaz,
+    cunku aradigi customers satiri yok olur)."""
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    data = request.get_json(force=True)
+    customer_id = data.get("customer_id")
+    if not customer_id:
+        return jsonify({"ok": False, "error": "customer_id gerekli"}), 400
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT discord_channel_id, username FROM customers WHERE id = %s",
+            (customer_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"ok": False, "error": "Musteri bulunamadi"}), 404
+
+        discord_channel_id, username = row
+        if discord_channel_id:
+            discord_delete_channel(discord_channel_id)
+
+        cur.execute("DELETE FROM customers WHERE id = %s", (customer_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "message": f"Musteri '{username}' tamamen silindi."})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/admin/run_cleanup_now", methods=["POST"])
 @limiter.limit("10 per minute")
 def run_cleanup_now():

@@ -287,6 +287,7 @@ function renderCustomers(customers) {
         <button class="btn btn-secondary btn-small" onclick="toggleActive(${c.id}, ${!c.active})">${c.active ? "Pasif Yap" : "Aktif Yap"}</button>
         <button class="btn btn-secondary btn-small" onclick="extendDays(${c.id})">Sure Uzat</button>
         <button class="btn btn-secondary btn-small" onclick="changePassword(${c.id})">Sifre Degistir</button>
+        <button class="btn btn-secondary btn-small" style="color: var(--red); border-color: var(--red);" onclick="deleteCustomer(${c.id}, '${c.username}')">Sil</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -329,6 +330,24 @@ async function changePassword(customerId) {
     });
     const data = await resp.json();
     if (data.ok) alert("Sifre guncellendi.");
+    else alert("Hata: " + data.error);
+  } catch (e) { alert("Baglanti hatasi: " + e.message); }
+}
+
+async function deleteCustomer(customerId, username) {
+  const confirmed = confirm(
+    "'" + username + "' musterisini KALICI olarak silmek istediginize emin misiniz?\n\n" +
+    "Bu islem GERI ALINAMAZ. Musterinin tum verileri (oturumlar, komutlar, raporlar) " +
+    "ve varsa Discord kanali da silinir."
+  );
+  if (!confirmed) return;
+  try {
+    const resp = await fetch("/api/admin/delete_customer", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ customer_id: customerId })
+    });
+    const data = await resp.json();
+    if (data.ok) loadCustomers();
     else alert("Hata: " + data.error);
   } catch (e) { alert("Baglanti hatasi: " + e.message); }
 }
