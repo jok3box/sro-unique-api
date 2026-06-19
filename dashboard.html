@@ -832,7 +832,7 @@ async function logout() {
 }
 
 function idleLabel(sec, clientRunning) {
-  if (clientRunning === false) return { text: "Client Kapali", dot: "dot-red" };
+  if (clientRunning === false) return { text: "Bot Durmus", dot: "dot-red" };
   if (sec < 120) return { text: "Aktif", dot: "dot-green" };
   if (sec < 600) return { text: Math.floor(sec/60) + "dk bosta", dot: "dot-yellow" };
   return { text: Math.floor(sec/60) + "dk bosta", dot: "dot-red" };
