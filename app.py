@@ -520,6 +520,7 @@ def activate_license():
     data = request.get_json(force=True)
     license_key = (data.get("license_key") or "").strip()
     discord_user_id = (data.get("discord_user_id") or "").strip() or None
+    hwid = (data.get("hwid") or "").strip() or None
 
     if not license_key:
         return jsonify({"ok": False, "error": "license_key gerekli"}), 400
@@ -529,7 +530,7 @@ def activate_license():
     cur.execute(
         """
         SELECT id, username, client_secret, character_limit, discord_channel_id,
-               discord_user_id, expires_at, active
+               discord_user_id, expires_at, active, hwid
         FROM customers WHERE license_key = %s
         """,
         (license_key,)
@@ -541,7 +542,7 @@ def activate_license():
         return jsonify({"ok": False, "error": "Lisans anahtari bulunamadi"}), 404
 
     (customer_id, username, client_secret, character_limit,
-     discord_channel_id, stored_discord_user_id, expires_at, active) = row
+     discord_channel_id, stored_discord_user_id, expires_at, active, stored_hwid) = row
 
     if not active:
         cur.close()
@@ -551,6 +552,18 @@ def activate_license():
         cur.close()
         conn.close()
         return jsonify({"ok": False, "error": "Lisansin suresi dolmus"}), 403
+
+    if hwid:
+        if not stored_hwid:
+            cur.execute(
+                "UPDATE customers SET hwid = %s WHERE id = %s",
+                (hwid, customer_id)
+            )
+            conn.commit()
+        elif stored_hwid != hwid:
+            cur.close()
+            conn.close()
+            return jsonify({"ok": False, "error": "Bu lisans baska bir bilgisayarda aktif. Yardim icin destek ile iletisime gecin."}), 409
 
     if discord_user_id:
         if not discord_channel_id:
@@ -842,6 +855,10 @@ def db_init():
         cur.execute("""
             ALTER TABLE customers
             ADD COLUMN IF NOT EXISTS discord_user_id VARCHAR(32);
+        """)
+        cur.execute("""
+            ALTER TABLE customers
+            ADD COLUMN IF NOT EXISTS hwid VARCHAR(128);
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
