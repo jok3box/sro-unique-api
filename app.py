@@ -703,6 +703,30 @@ def update_customer():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/admin/reset_hwid", methods=["POST"])
+@limiter.limit("20 per minute")
+def reset_hwid():
+    """Musterinin HWID kilidini sifirlar - musteri yeni bilgisayar aldiginda
+    veya destek talebiyle, admin bu musterinin tekrar herhangi bir
+    bilgisayardan aktivasyon yapabilmesini saglar."""
+    if not _check_admin_auth():
+        return jsonify({"ok": False, "error": "Yetkisiz"}), 401
+    data = request.get_json(force=True)
+    customer_id = data.get("customer_id")
+    if not customer_id:
+        return jsonify({"ok": False, "error": "customer_id gerekli"}), 400
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE customers SET hwid = NULL WHERE id=%s", (customer_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "message": "HWID sifirlandi, musteri yeni bir bilgisayardan aktivasyon yapabilir."})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/admin/delete_customer", methods=["POST"])
 @limiter.limit("10 per minute")
 def delete_customer():
