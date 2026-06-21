@@ -304,6 +304,7 @@ function renderCustomers(customers) {
         <button class="btn btn-secondary btn-small" onclick="toggleActive(${c.id}, ${!c.active})">${c.active ? "Pasif Yap" : "Aktif Yap"}</button>
         <button class="btn btn-secondary btn-small" onclick="extendDays(${c.id})">Sure Uzat</button>
         <button class="btn btn-secondary btn-small" onclick="changePassword(${c.id})">Sifre Degistir</button>
+        <button class="btn btn-secondary btn-small" onclick="resetHwid(${c.id})">HWID Sifirla</button>
         <button class="btn btn-secondary btn-small" style="color: var(--red); border-color: var(--red);" onclick="deleteCustomer(${c.id}, '${c.username}')">Sil</button>
       </td>
     `;
@@ -311,6 +312,18 @@ function renderCustomers(customers) {
   });
 }
 
+async function resetHwid(customerId) {
+  if (!confirm("Bu musterinin HWID kilidini sifirlamak istediginize emin misiniz? Musteri farkli bir bilgisayardan aktivasyon yapabilecek.")) return;
+  try {
+    const resp = await fetch("/api/admin/reset_hwid", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ customer_id: customerId })
+    });
+    const data = await resp.json();
+    if (data.ok) alert(data.message);
+    else alert("Hata: " + data.error);
+  } catch (e) { alert("Baglanti hatasi: " + e.message); }
+}
 async function toggleActive(customerId, newActive) {
   try {
     const resp = await fetch("/api/admin/update_customer", {
