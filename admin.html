@@ -16,6 +16,7 @@
     --green: #3ddc84;
     --yellow: #ffd34d;
     --red: #ff5c5c;
+    --jbot: #a78bfa;
   }
   * { box-sizing: border-box; }
   body {
@@ -91,6 +92,30 @@
   }
   header .sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    padding: 0 24px;
+  }
+  .tab-btn {
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-btn.jbot-tab.active { border-bottom-color: var(--jbot); color: var(--jbot); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
   main {
     padding: 24px;
     max-width: 1100px;
@@ -112,11 +137,13 @@
     color: var(--text-dim);
     margin: 0 0 16px;
   }
+  .panel.jbot-panel { border-color: rgba(167,139,250,0.3); }
+  .panel.jbot-panel h2 { color: var(--jbot); }
 
   .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 12px; color: var(--text-dim); }
-  .field input {
+  .field input, .field select {
     padding: 9px 10px;
     border-radius: 8px;
     border: 1px solid var(--border);
@@ -125,6 +152,7 @@
     font-size: 13px;
     width: 160px;
   }
+  .field select option { background: #1c1c28; }
   .btn {
     padding: 9px 16px;
     border-radius: 8px;
@@ -136,6 +164,10 @@
     cursor: pointer;
   }
   .btn:hover { opacity: 0.9; }
+  .btn-jbot {
+    background: linear-gradient(90deg, var(--jbot), #60a5fa);
+    color: #0a0a0f;
+  }
   .btn-secondary {
     background: #1c1c28;
     border: 1px solid var(--border);
@@ -151,6 +183,9 @@
   .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
   .badge.active { background: rgba(61,220,132,0.15); color: var(--green); }
   .badge.inactive { background: rgba(255,92,92,0.15); color: var(--red); }
+  .badge.full { background: rgba(167,139,250,0.15); color: var(--jbot); }
+  .badge.autotarget { background: rgba(0,224,255,0.15); color: var(--accent2); }
+  .badge.rocpickup { background: rgba(255,211,77,0.15); color: var(--yellow); }
   .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
   .result-box {
@@ -172,6 +207,13 @@
     letter-spacing: 1px;
     cursor: pointer;
   }
+  .license-key-jbot {
+    font-family: 'Consolas', monospace;
+    font-size: 16px;
+    color: var(--jbot);
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
   .hint { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
 
   @media (max-width: 700px) {
@@ -179,7 +221,7 @@
     .panel { padding: 14px; }
     .form-row { gap: 10px; }
     .field { flex: 1 1 140px; }
-    .field input { width: 100%; }
+    .field input, .field select { width: 100%; }
     .login-box { width: calc(100% - 32px); max-width: 320px; padding: 28px 20px; }
     table { font-size: 12px; }
     th, td { padding: 8px 6px; }
@@ -209,40 +251,87 @@
     <button class="btn btn-secondary" onclick="doLogout()">Cikis</button>
   </header>
 
-  <main>
-    <div class="panel">
-      <h2>Yeni Lisans Olustur</h2>
-      <div class="form-row">
-        <div class="field"><label>Kullanici Adi (opsiyonel)</label><input id="nc-username" type="text" placeholder="Bos birakilirsa musteri kendi belirler"></div>
-        <div class="field"><label>Sifre (opsiyonel)</label><input id="nc-password" type="text" placeholder="Bos birakilirsa musteri kendi belirler"></div>
-        <div class="field"><label>Karakter Limiti</label><input id="nc-limit" type="number" value="5"></div>
-        <div class="field"><label>Gun Sayisi</label><input id="nc-days" type="number" value="30"></div>
-        <button class="btn" onclick="createCustomer()">Olustur</button>
-      </div>
-      <div id="create-result" class="result-box"></div>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('phbot')">phBot Monitor</button>
+    <button class="tab-btn jbot-tab" onclick="switchTab('jbot')">JBOT</button>
+  </div>
 
-    <div class="panel">
-      <h2>Musteriler</h2>
-      <div style="margin-bottom: 12px;">
-        <button class="btn btn-secondary btn-small" onclick="loadCustomers()">Yenile</button>
+  <!-- PHBOT TAB -->
+  <div id="tab-phbot" class="tab-content active">
+    <main>
+      <div class="panel">
+        <h2>Yeni Lisans Olustur</h2>
+        <div class="form-row">
+          <div class="field"><label>Kullanici Adi (opsiyonel)</label><input id="nc-username" type="text" placeholder="Bos birakilirsa musteri kendi belirler"></div>
+          <div class="field"><label>Sifre (opsiyonel)</label><input id="nc-password" type="text" placeholder="Bos birakilirsa musteri kendi belirler"></div>
+          <div class="field"><label>Karakter Limiti</label><input id="nc-limit" type="number" value="5"></div>
+          <div class="field"><label>Gun Sayisi</label><input id="nc-days" type="number" value="30"></div>
+          <button class="btn" onclick="createCustomer()">Olustur</button>
+        </div>
+        <div id="create-result" class="result-box"></div>
       </div>
-      <div style="overflow-x: auto;">
-        <table>
-          <thead>
-            <tr><th>ID</th><th>Kullanici Adi</th><th>Lisans Anahtari</th><th>Karakter Limiti</th><th>Bitis Tarihi</th><th>Durum</th><th>Aksiyonlar</th></tr>
-          </thead>
-          <tbody id="customers-tbody"></tbody>
-        </table>
-      </div>
-    </div>
 
-    <div class="panel">
-      <h2>Bakim</h2>
-      <button class="btn btn-secondary" onclick="runCleanup()">Pasif Musteri Kanallarini Simdi Temizle</button>
-      <div id="cleanup-result" class="result-box"></div>
-    </div>
-  </main>
+      <div class="panel">
+        <h2>Musteriler</h2>
+        <div style="margin-bottom: 12px;">
+          <button class="btn btn-secondary btn-small" onclick="loadCustomers()">Yenile</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Kullanici Adi</th><th>Lisans Anahtari</th><th>Karakter Limiti</th><th>Bitis Tarihi</th><th>Durum</th><th>Aksiyonlar</th></tr>
+            </thead>
+            <tbody id="customers-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Bakim</h2>
+        <button class="btn btn-secondary" onclick="runCleanup()">Pasif Musteri Kanallarini Simdi Temizle</button>
+        <div id="cleanup-result" class="result-box"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- JBOT TAB -->
+  <div id="tab-jbot" class="tab-content">
+    <main>
+      <div class="panel jbot-panel">
+        <h2>Yeni JBOT Lisansi Olustur</h2>
+        <div class="form-row">
+          <div class="field">
+            <label>Urun</label>
+            <select id="jbot-product">
+              <option value="full">Full (Tum Pluginler)</option>
+              <option value="autotarget">AutoTarget</option>
+              <option value="rocpickup">ROC Pickup</option>
+              <option value="rocpickup_autotarget">ROC Pickup + AutoTarget</option>
+            </select>
+          </div>
+          <div class="field"><label>Gun Sayisi</label><input id="jbot-days" type="number" value="30" style="width:100px;"></div>
+          <div class="field"><label>Not (opsiyonel)</label><input id="jbot-note" type="text" placeholder="Musteri adi veya aciklama" style="width:200px;"></div>
+          <button class="btn btn-jbot" onclick="createJbotLicense()">Lisans Olustur</button>
+        </div>
+        <div id="jbot-create-result" class="result-box"></div>
+      </div>
+
+      <div class="panel jbot-panel">
+        <h2>JBOT Lisanslari</h2>
+        <div style="margin-bottom: 12px;">
+          <button class="btn btn-secondary btn-small" onclick="loadJbotLicenses()">Yenile</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Lisans Anahtari</th><th>Urun</th><th>HWID</th><th>Bitis Tarihi</th><th>Durum</th><th>Not</th><th>Aksiyonlar</th></tr>
+            </thead>
+            <tbody id="jbot-licenses-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
 </div>
 
 <script>
@@ -250,6 +339,14 @@ let adminSecret = localStorage.getItem("phbot_admin_secret") || "";
 
 function authHeaders() {
   return { "Authorization": "Bearer " + adminSecret, "Content-Type": "application/json" };
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'jbot') loadJbotLicenses();
 }
 
 async function doLogin() {
@@ -312,8 +409,103 @@ function renderCustomers(customers) {
   });
 }
 
+async function loadJbotLicenses() {
+  try {
+    const resp = await fetch("/api/admin/jbot/list_licenses", { headers: authHeaders() });
+    const data = await resp.json();
+    if (data.ok) renderJbotLicenses(data.licenses);
+  } catch (e) { console.error(e); }
+}
+
+function renderJbotLicenses(licenses) {
+  const tbody = document.getElementById("jbot-licenses-tbody");
+  tbody.innerHTML = "";
+  if (licenses.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--text-dim);text-align:center;padding:20px;">Henuz lisans yok</td></tr>';
+    return;
+  }
+  licenses.forEach(l => {
+    const tr = document.createElement("tr");
+    const expDate = new Date(l.expires_at).toLocaleDateString("tr-TR");
+    const productBadge = `<span class="badge ${l.product}">${l.product}</span>`;
+    const hwidBadge = l.hwid_set
+      ? '<span class="badge active">Kayitli</span>'
+      : '<span class="badge inactive">Kayitsiz</span>';
+    tr.innerHTML = `
+      <td>${l.id}</td>
+      <td><span class="license-key-jbot" onclick="navigator.clipboard.writeText('${l.license_key}');this.innerText='Kopyalandi!';setTimeout(()=>this.innerText='${l.license_key}',1500)" title="Kopyalamak icin tikla">${l.license_key}</span></td>
+      <td>${productBadge}</td>
+      <td>${hwidBadge}</td>
+      <td>${expDate}</td>
+      <td><span class="badge ${l.active ? 'active' : 'inactive'}">${l.active ? 'Aktif' : 'Pasif'}</span></td>
+      <td style="color:var(--text-dim);font-size:12px;">${l.note || '-'}</td>
+      <td class="row-actions">
+        <button class="btn btn-secondary btn-small" onclick="toggleJbotLicense(${l.id}, ${!l.active})">${l.active ? 'Pasif Yap' : 'Aktif Yap'}</button>
+        <button class="btn btn-secondary btn-small" onclick="resetJbotHwid(${l.id})">HWID Sifirla</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function createJbotLicense() {
+  const product = document.getElementById("jbot-product").value;
+  const days = parseInt(document.getElementById("jbot-days").value, 10);
+  const note = document.getElementById("jbot-note").value.trim();
+  const resultBox = document.getElementById("jbot-create-result");
+
+  try {
+    const resp = await fetch("/api/jbot/create_license", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ product, days, note })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      resultBox.className = "result-box show success";
+      resultBox.innerHTML = `
+        Lisans olusturuldu!<br>
+        <span class="license-key-jbot" onclick="navigator.clipboard.writeText('${data.license_key}');this.innerText='Kopyalandi!';setTimeout(()=>this.innerText='${data.license_key}',1500)">${data.license_key}</span>
+        <div class="hint">Tiklayinca kopyalanir. Urun: <strong>${data.product}</strong> | Bitis: ${new Date(data.expires_at).toLocaleDateString('tr-TR')}</div>
+      `;
+      document.getElementById("jbot-note").value = "";
+      loadJbotLicenses();
+    } else {
+      resultBox.className = "result-box show error";
+      resultBox.innerText = "Hata: " + data.error;
+    }
+  } catch (e) {
+    resultBox.className = "result-box show error";
+    resultBox.innerText = "Baglanti hatasi: " + e.message;
+  }
+}
+
+async function toggleJbotLicense(licenseId, newActive) {
+  try {
+    const resp = await fetch("/api/admin/jbot/toggle_license", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ license_id: licenseId, active: newActive })
+    });
+    const data = await resp.json();
+    if (data.ok) loadJbotLicenses();
+    else alert("Hata: " + data.error);
+  } catch (e) { alert("Baglanti hatasi: " + e.message); }
+}
+
+async function resetJbotHwid(licenseId) {
+  if (!confirm("Bu JBOT lisansinin HWID kilidini sifirlamak istediginize emin misiniz?")) return;
+  try {
+    const resp = await fetch("/api/admin/jbot/reset_hwid", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ license_id: licenseId })
+    });
+    const data = await resp.json();
+    if (data.ok) { alert(data.message); loadJbotLicenses(); }
+    else alert("Hata: " + data.error);
+  } catch (e) { alert("Baglanti hatasi: " + e.message); }
+}
+
 async function resetHwid(customerId) {
-  if (!confirm("Bu musterinin HWID kilidini sifirlamak istediginize emin misiniz? Musteri farkli bir bilgisayardan aktivasyon yapabilecek.")) return;
+  if (!confirm("Bu musterinin HWID kilidini sifirlamak istediginize emin misiniz?")) return;
   try {
     const resp = await fetch("/api/admin/reset_hwid", {
       method: "POST", headers: authHeaders(),
@@ -324,6 +516,7 @@ async function resetHwid(customerId) {
     else alert("Hata: " + data.error);
   } catch (e) { alert("Baglanti hatasi: " + e.message); }
 }
+
 async function toggleActive(customerId, newActive) {
   try {
     const resp = await fetch("/api/admin/update_customer", {
@@ -366,9 +559,7 @@ async function changePassword(customerId) {
 
 async function deleteCustomer(customerId, username) {
   const confirmed = confirm(
-    "'" + username + "' musterisini KALICI olarak silmek istediginize emin misiniz?\n\n" +
-    "Bu islem GERI ALINAMAZ. Musterinin tum verileri (oturumlar, komutlar, raporlar) " +
-    "ve varsa Discord kanali da silinir."
+    "'" + username + "' musterisini KALICI olarak silmek istediginize emin misiniz?\n\nBu islem GERI ALINAMAZ."
   );
   if (!confirmed) return;
   try {
@@ -418,7 +609,7 @@ async function runCleanup() {
     const data = await resp.json();
     if (data.ok) {
       resultBox.className = "result-box show success";
-      resultBox.innerText = data.matched + " kanal kontrol edildi, sonuc: " + JSON.stringify(data.results);
+      resultBox.innerText = data.matched + " kanal kontrol edildi.";
     } else {
       resultBox.className = "result-box show error";
       resultBox.innerText = "Hata: " + data.error;
