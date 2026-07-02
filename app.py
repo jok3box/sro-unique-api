@@ -964,7 +964,7 @@ def fetch_gamegami(server_id: int) -> list:
             name, spawn, kill, killer, region = cells[0], cells[1], cells[2], cells[3], cells[4]
             if not name or not spawn or len(name) > 50:
                 continue
-            if not re.match(r"\d{2}\.\d{2}\.\d{4}", spawn):
+            if not re.match(r"\d{1,2}\.\d{2}\.\d{4}", spawn):
                 continue
             result.append({
                 "name": name,
